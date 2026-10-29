@@ -8980,5 +8980,15 @@
     "version": "0.7.7",
     "creator": null,
     "source": "Preserved Korean intro UI and BGM_Intro_First_Future_QWER_01; viewer title replaces copyright sprite; creator unknown"
+  },
+  "Bootstrap/intro-preview.mp4": {
+    "originalName": "intro-preview.mp4",
+    "logicalPath": "Bootstrap/intro-preview.mp4",
+    "sha256": "f0d7fcea522a1a93b41943971dbba211a7be8c5e2ffef42da3b25fb16926494d",
+    "bytes": 78188249,
+    "version": "0.8.0",
+    "creator": null,
+    "source": "Lower bitrate 1920x1440 copy of preserved intro_background; app-local startup media",
+    "appLocal": true
   }
 }

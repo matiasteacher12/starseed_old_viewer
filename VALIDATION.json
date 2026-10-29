@@ -1,16 +1,15 @@
 {
-  "appVersion": "0.7.9",
+  "appVersion": "0.8.0",
   "catalogSha256": "f849bc9a9236ef3795058332a94ccfd3d16b3a59516a0cdd2615df49cbbdcace",
-  "assemblySha256": "d64275caee8121a20a6396fae77acdd464a7e55670929741d737908cc617c61f",
-  "assetChanges": false,
+  "assemblySha256": "3626a909087bc9f978ee196dc900e18873aadd2543b8287218ca927d5c565ab7",
+  "startupMovieSha256": "f0d7fcea522a1a93b41943971dbba211a7be8c5e2ffef42da3b25fb16926494d",
+  "coreAssetsUnchanged": true,
   "checks": [
-    "native startup",
-    "installed startup",
-    "tap gate waits with live media",
-    "early/duplicate click rejection",
-    "UI raycast and menu handoff",
+    "empty-download rendered media",
+    "time-preserving original movie switch",
+    "warm/corrupt/missing preview",
+    "tap and menu flow",
     "user state preserved"
   ],
-  "priorContentValidationVersion": "0.7.7",
   "dataRelease": "assets-v0.7.6"
 }

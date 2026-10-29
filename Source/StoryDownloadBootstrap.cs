@@ -15,6 +15,10 @@ public sealed class StoryDownloadBootstrap:MonoBehaviour {
         var hash=Task.Run(()=>StoryContent.Hash(installer.BootstrapBundle));while(!hash.IsCompleted)yield return null;
         if(hash.IsFaulted)throw hash.Exception.GetBaseException();if(hash.Result!=installer.BootstrapHash)throw new Exception("Startup UI hash mismatch");
         Screen=gameObject.AddComponent<StartupLoadingScreen>();yield return Screen.Prepare(installer.BootstrapBundle);
+        var preview=installer.VerifyStartupMovie();while(!preview.IsCompleted)yield return null;
+        if(preview.IsFaulted)throw preview.Exception.GetBaseException();
+        if(preview.Result!=null){Screen.BeginMovie(preview.Result);Debug.Log("STARTUP_LOCAL_MOVIE_VERIFIED beforeDownload=true");}
+        else Debug.Log("STARTUP_LOCAL_MOVIE_FALLBACK installedOrDownloadedContent=true");
         var args=Environment.GetCommandLineArgs();bool captured=false,mediaChecked=false;
         while(true){
             Task install=installer.Install();
@@ -27,6 +31,11 @@ public sealed class StoryDownloadBootstrap:MonoBehaviour {
                     }
                 }
                 if(!captured&&installer.Requests>0){Screen.Capture("download-076");captured=true;}
+                if(Application.isBatchMode&&args.Contains("-startup-download-media-check")&&!mediaChecked&&installer.Requests>0){
+                    yield return Screen.CheckDownloadMedia();
+                    if(install.IsCompleted)throw new Exception("Download media check needs an active transfer");
+                    mediaChecked=true;Debug.Log("STARTUP_DURING_DOWNLOAD_OK requests="+installer.Requests+" bytes="+Interlocked.Read(ref installer.Done));
+                }
                 yield return null;
             }
             if(!install.IsFaulted&&!install.IsCanceled)break;
@@ -37,6 +46,7 @@ public sealed class StoryDownloadBootstrap:MonoBehaviour {
             }
         }
         if(installer.ReadyMovie!=null)Screen.BeginMovie(installer.ReadyMovie);
+        if(Application.isBatchMode&&args.Contains("-startup-download-media-check")&&!mediaChecked)throw new Exception("Download media check did not run");
         installer.SaveVerification();StoryContent.InstalledRoot=installer.ContentRoot;Installed=true;
         Debug.Log("ASSET_INSTALL_OK networkRequests="+installer.Requests+" downloaded="+installer.NeededDownload+" root="+installer.ContentRoot);
         if(Application.isBatchMode&&args.Contains("-download-only-check")){Screen.Close();Application.Quit(0);yield break;}

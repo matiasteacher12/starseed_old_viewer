@@ -21,7 +21,7 @@ public sealed class StartupLoadingScreen:MonoBehaviour {
     float progress;bool finished;string moviePath,assetPrefix;MText downloadText;Image downloadBar;GameObject downloadRoot,loadingRoot;
     public static int Shows {get;private set;}
     public bool MovieDecoded=>movie&&movie.isPrepared&&movie.frame>=0;
-    bool movieStarted;AudioSource introMusic;
+    bool movieStarted;AudioSource introMusic;string selectedMoviePath;VideoPlayer pendingMovie;
     Button startButton;CanvasGroup startHint;bool waitingForStart,startArmed;int startRequests;
     public IEnumerator Prepare(string localBundle=null){
         if(localBundle==null)yield return StoryContent.VerifyAsync("Startup/startup.bundle");
@@ -75,7 +75,11 @@ public sealed class StartupLoadingScreen:MonoBehaviour {
         if(localBundle==null)BeginMovie();
     }
     T Load<T>(string file) where T:UnityEngine.Object {var value=assets.LoadAsset<T>(assetPrefix+file.ToLowerInvariant());if(!value)throw new InvalidDataException(file);return value;}
-    public void BeginMovie(string verifiedPath=null){if(movieStarted||finished)return;movieStarted=true;StartCoroutine(PlayMovie(verifiedPath));}
+    public void BeginMovie(string verifiedPath=null){
+        if(finished)return;
+        if(movieStarted){if(verifiedPath!=null&&verifiedPath!=selectedMoviePath){selectedMoviePath=verifiedPath;StartCoroutine(UpgradeMovie(verifiedPath));}return;}
+        selectedMoviePath=verifiedPath;movieStarted=true;StartCoroutine(PlayMovie(verifiedPath));
+    }
     public void DownloadMode(bool active){if(downloadRoot)downloadRoot.SetActive(active);if(loadingRoot)loadingRoot.SetActive(!active);}
     public void DownloadProgress(long done,long total,string phase){
         DownloadMode(true);float value=total>0?Mathf.Clamp01((float)((double)done/total)):0;
@@ -91,6 +95,30 @@ public sealed class StartupLoadingScreen:MonoBehaviour {
         while(!movie.isPrepared&&Time.realtimeSinceStartup<deadline)yield return null;
         if(!movie.isPrepared)yield break;movie.Play();
         bool logged=false;while(!finished){if(movie.texture){movieImage.texture=movie.texture;if(!logged){logged=true;Debug.Log("STARTUP_MOVIE_DECODED width="+movie.texture.width+" height="+movie.texture.height);}}yield return null;}
+    }
+    IEnumerator UpgradeMovie(string verifiedPath){
+        float deadline=Time.realtimeSinceStartup+15;
+        while(!MovieDecoded&&!finished&&Time.realtimeSinceStartup<deadline)yield return null;
+        if(finished||!MovieDecoded)yield break;
+        var next=gameObject.AddComponent<VideoPlayer>();pendingMovie=next;
+        next.playOnAwake=false;next.audioOutputMode=VideoAudioOutputMode.None;next.renderMode=VideoRenderMode.APIOnly;next.isLooping=true;next.waitForFirstFrame=true;next.url=verifiedPath;
+        bool failed=false;next.errorReceived+=(p,e)=>{failed=true;Debug.LogWarning("STARTUP_MOVIE_UPGRADE_FALLBACK "+e);};
+        next.Prepare();deadline=Time.realtimeSinceStartup+15;
+        while(!failed&&!next.isPrepared&&Time.realtimeSinceStartup<deadline)yield return null;
+        if(!failed&&next.isPrepared){
+            // Prepare/seek offscreen while the preview and the independent
+            // intro AudioSource keep running. Swap only after a decoded frame.
+            double position=movie.time%(next.length>0?next.length:double.MaxValue);bool sought=position<.01;
+            next.seekCompleted+=p=>sought=true;next.time=position;next.Play();deadline=Time.realtimeSinceStartup+8;
+            while(!failed&&(!sought||next.frame<0||!next.texture||!next.isPlaying)&&Time.realtimeSinceStartup<deadline)yield return null;
+            if(!failed&&sought&&next.frame>=0&&next.texture&&next.isPlaying){
+                double before=movie.time,after=next.time;var previous=movie;
+                movie=next;movieImage.texture=next.texture;pendingMovie=null;previous.Stop();Destroy(previous);
+                Debug.Log("STARTUP_MOVIE_UPGRADED timeBefore="+before.ToString("F3",System.Globalization.CultureInfo.InvariantCulture)+" timeAfter="+after.ToString("F3",System.Globalization.CultureInfo.InvariantCulture)+" musicUnchanged="+(introMusic&&introMusic.isPlaying));
+                yield break;
+            }
+        }
+        next.Stop();Destroy(next);pendingMovie=null;Debug.LogWarning("STARTUP_MOVIE_UPGRADE_RETAINED_PREVIEW");
     }
     public void SetProgress(float value,string phase){
         if(value<progress-.0001f||value>1.0001f)throw new Exception("Invalid startup progress");progress=Mathf.Clamp01(value);
@@ -175,7 +203,7 @@ public sealed class StartupLoadingScreen:MonoBehaviour {
         RenderTexture.active=previous;canvas.renderMode=RenderMode.ScreenSpaceOverlay;canvas.worldCamera=null;camera.targetTexture=null;target.Release();Destroy(target);Destroy(texture);Destroy(camera.gameObject);
     }
     public void StopMusic(){if(introMusic){introMusic.Stop();Destroy(introMusic);introMusic=null;}}
-    public void Close(){finished=true;StopAllCoroutines();StopMusic();if(movie){movie.Stop();movie.targetTexture=null;movieImage.texture=null;Destroy(movie);movie=null;}if(canvas){canvas.gameObject.SetActive(false);Destroy(canvas.gameObject);canvas=null;}if(clear){Destroy(clear.gameObject);clear=null;}foreach(var sprite in sprites)Destroy(sprite);sprites.Clear();}
+    public void Close(){finished=true;StopAllCoroutines();StopMusic();if(pendingMovie){pendingMovie.Stop();Destroy(pendingMovie);pendingMovie=null;}if(movie){movie.Stop();movie.targetTexture=null;movieImage.texture=null;Destroy(movie);movie=null;}if(canvas){canvas.gameObject.SetActive(false);Destroy(canvas.gameObject);canvas=null;}if(clear){Destroy(clear.gameObject);clear=null;}foreach(var sprite in sprites)Destroy(sprite);sprites.Clear();}
     void ReleaseAssets(){if(assets){assets.Unload(true);assets=null;}}
     void OnDestroy(){Close();ReleaseAssets();}
 }

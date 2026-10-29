@@ -12,7 +12,7 @@ using UnityEngine;
 // Installs only the immutable catalog shipped with this app. No login/token,
 // moving latest branch, original game server, or arbitrary archive paths.
 public sealed class StoryAssetInstaller : IDisposable {
-    [Serializable] public class Plan {public int schema;public string version,catalogSha256,bootstrapSha256;public Part[] parts;}
+    [Serializable] public class Plan {public int schema;public string version,catalogSha256,bootstrapSha256;public Part[] parts;public StoryContent.FileEntry startupMovie;}
     [Serializable] public class Part {public string name,url,sha256;public long bytes;public string[] objects;}
     readonly Plan plan;readonly StoryContent.Manifest catalog;readonly string bootstrap,root,store,downloads;
     readonly string catalogText;readonly Dictionary<string,string> metadataText=new Dictionary<string,string>();
@@ -57,10 +57,20 @@ public sealed class StoryAssetInstaller : IDisposable {
             foreach(string h in part.objects)if(!objects.ContainsKey(h)||!covered.Add(h))throw new InvalidDataException("Duplicate/unknown part object");
         }
         if(covered.Count!=objects.Count)throw new InvalidDataException("Incomplete download plan");
+        if(plan.startupMovie!=null&&(plan.startupMovie.path!="intro-preview.mp4"||plan.startupMovie.bytes<=0||plan.startupMovie.bytes>=100L*1024*1024||!Regex.IsMatch(plan.startupMovie.sha256??"","^[0-9a-f]{64}$")))throw new InvalidDataException("Invalid startup movie");
         verification=new StoryContentVerification(root,plan.catalogSha256);
         mediaProbe=Application.isBatchMode&&Environment.GetCommandLineArgs().Contains("-startup-media-check");
     }
     string ObjectPath(string h)=>Path.Combine(store,"referenced",h.Substring(0,2),h);
+    public Task<string> VerifyStartupMovie()=>Task.Run(()=>{
+        var entry=plan.startupMovie;if(entry==null)return null;
+        string path=Path.Combine(bootstrap,entry.path);
+        try{
+            var before=new FileInfo(path);if(!before.Exists||before.Length!=entry.bytes)return null;
+            long write=before.LastWriteTimeUtc.Ticks;string digest=StoryContent.Hash(path);var after=new FileInfo(path);
+            return digest==entry.sha256&&after.Length==entry.bytes&&after.LastWriteTimeUtc.Ticks==write?path:null;
+        }catch(IOException){return null;}catch(UnauthorizedAccessException){return null;}
+    });
     void CheckCancel(){cancel.Token.ThrowIfCancellationRequested();}
     bool Verified(string h){
         string p=ObjectPath(h);var f=objects[h];
