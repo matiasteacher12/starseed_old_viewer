@@ -1,12 +1,14 @@
 {
-  "appVersion": "0.7.8",
+  "appVersion": "0.7.9",
   "catalogSha256": "f849bc9a9236ef3795058332a94ccfd3d16b3a59516a0cdd2615df49cbbdcace",
-  "assemblySha256": "6729ee8587724e3e1c4667f1a8b686846b8acd0a8af349a6d99a9f4702a10905",
+  "assemblySha256": "d64275caee8121a20a6396fae77acdd464a7e55670929741d737908cc617c61f",
   "assetChanges": false,
   "checks": [
     "native startup",
     "installed startup",
-    "rendered title under logo",
+    "tap gate waits with live media",
+    "early/duplicate click rejection",
+    "UI raycast and menu handoff",
     "user state preserved"
   ],
   "priorContentValidationVersion": "0.7.7",

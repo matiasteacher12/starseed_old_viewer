@@ -6,6 +6,7 @@ using System.Linq;
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.Video;
+using UnityEngine.EventSystems;
 
 // Visual layout from preserved Windows Root_Intro. No login or game scripts.
 public sealed class StartupLoadingScreen:MonoBehaviour {
@@ -21,6 +22,7 @@ public sealed class StartupLoadingScreen:MonoBehaviour {
     public static int Shows {get;private set;}
     public bool MovieDecoded=>movie&&movie.isPrepared&&movie.frame>=0;
     bool movieStarted;AudioSource introMusic;
+    Button startButton;CanvasGroup startHint;bool waitingForStart,startArmed;int startRequests;
     public IEnumerator Prepare(string localBundle=null){
         if(localBundle==null)yield return StoryContent.VerifyAsync("Startup/startup.bundle");
         var request=AssetBundle.LoadFromFileAsync(localBundle??StoryContent.FilePath("Startup/startup.bundle"));yield return request;assets=request.assetBundle;
@@ -115,7 +117,53 @@ public sealed class StartupLoadingScreen:MonoBehaviour {
             if(!MovieDecoded)throw new Exception("Startup background movie did not decode");
             Debug.Log("STARTUP_UI_CHECK_OK shows="+Shows+" progress="+progress+" movie=true");
         }
+        yield return WaitForStart();
         Close();yield return null;yield return null;ReleaseAssets();yield return null;Debug.Log("STARTUP_UI_CLOSED");
+    }
+    IEnumerator WaitForStart(){
+        if(downloadRoot)downloadRoot.SetActive(false);if(loadingRoot)loadingRoot.SetActive(false);
+        var input=new GameObject("Tap to start",typeof(RectTransform),typeof(Image),typeof(Button));
+        var hit=(RectTransform)input.transform;hit.SetParent(canvas.transform,false);hit.anchorMin=Vector2.zero;hit.anchorMax=Vector2.one;hit.offsetMin=hit.offsetMax=Vector2.zero;
+        input.GetComponent<Image>().color=Color.clear;
+        startButton=input.GetComponent<Button>();startButton.transition=Selectable.Transition.None;startButton.interactable=false;startButton.onClick.AddListener(RequestStart);
+        // Preserved Korean Root_Intro/Contens/Btn_Touch: 200x20, bottom +100,
+        // box_basic white alpha .427, Number_Slim_EB size 15 / spacing 24.
+        // Reuse the already loaded sprite/font; no additional asset payload.
+        var hint=new GameObject("Start hint",typeof(RectTransform),typeof(Image),typeof(CanvasGroup));
+        var rt=(RectTransform)hint.transform;rt.SetParent(nodes["/Root_Intro"],false);rt.SetAsLastSibling();
+        rt.anchorMin=rt.anchorMax=new Vector2(.5f,0);rt.pivot=new Vector2(.5f,0);rt.anchoredPosition=new Vector2(0,100);rt.sizeDelta=new Vector2(200,20);
+        var bg=hint.GetComponent<Image>();bg.sprite=bar.sprite;bg.type=Image.Type.Sliced;bg.color=new Color(1,1,1,.427451f);bg.raycastTarget=false;
+        startHint=hint.GetComponent<CanvasGroup>();
+        var label=new GameObject("Text",typeof(RectTransform),typeof(MText));var tr=(RectTransform)label.transform;tr.SetParent(rt,false);tr.anchorMin=Vector2.zero;tr.anchorMax=Vector2.one;tr.offsetMin=new Vector2(0,-1.5f);tr.offsetMax=new Vector2(0,-1.5f);
+        var caption=label.GetComponent<MText>();caption.font=percent.font;caption.fontSize=15;caption.spacing=24;caption.alignment=TextAnchor.MiddleCenter;caption.color=new Color(0,0,0,.545098f);caption.text="- TAP TO START -";caption.raycastTarget=false;
+        waitingForStart=true;startArmed=false;
+        bool probe=Application.isBatchMode&&Environment.GetCommandLineArgs().Contains("-startup-tap-check");
+        if(probe){startButton.onClick.Invoke();if(!waitingForStart||startRequests!=0)throw new Exception("Premature start accepted");}
+        // A press held during loading cannot become a start request. Menu input
+        // remains disabled until the subsequent click has been consumed.
+        yield return null;
+        while(Input.GetMouseButton(0)||Input.GetKey(KeyCode.Return)||Input.GetKey(KeyCode.KeypadEnter)||Input.GetKey(KeyCode.Space)||Input.touchCount>0)yield return null;
+        startArmed=true;startButton.interactable=true;Debug.Log("STARTUP_TAP_READY");
+        if(probe){
+            float deadline=Time.realtimeSinceStartup+12;while(!MovieDecoded&&Time.realtimeSinceStartup<deadline)yield return null;
+            if(!MovieDecoded||!introMusic||!introMusic.isPlaying)throw new Exception("Start screen media missing");
+            long frame=movie.frame;int sample=introMusic.timeSamples;Capture("startup-tap-before");yield return new WaitForSecondsRealtime(2);Capture("startup-tap-after");
+            if(!waitingForStart||startRequests!=0||movie.frame<=frame||introMusic.timeSamples<=sample)throw new Exception("Start gate auto-advanced or media stopped");
+            var hits=new List<RaycastResult>();EventSystem.current.RaycastAll(new PointerEventData(EventSystem.current){position=new Vector2(Screen.width*.5f,Screen.height*.15f)},hits);
+            if(hits.Count==0||hits[0].gameObject!=input)throw new Exception("Start click is not routed to overlay");
+            startButton.onClick.Invoke();startButton.onClick.Invoke();if(waitingForStart||startRequests!=1)throw new Exception("Start click was not consumed exactly once");
+            Debug.Log("STARTUP_TAP_CHECK_OK wait=true media=true earlyIgnored=true raycast=true singleClick=true");
+        } else if(Application.isBatchMode)RequestStart(); // Existing unrelated probes remain noninteractive.
+        while(waitingForStart)yield return null;
+        startButton.interactable=false;
+        while(Input.GetMouseButton(0)||Input.GetKey(KeyCode.Return)||Input.GetKey(KeyCode.KeypadEnter)||Input.GetKey(KeyCode.Space)||Input.touchCount>0)yield return null;
+        yield return null;Debug.Log("STARTUP_TAP_ACCEPTED");
+    }
+    void RequestStart(){if(!waitingForStart||!startArmed)return;startRequests++;waitingForStart=false;}
+    void Update(){
+        if(!waitingForStart)return;
+        if(startHint)startHint.alpha=.8f+.2f*Mathf.Cos(Time.unscaledTime*2.5f);
+        if(startArmed&&(Input.GetKeyDown(KeyCode.Return)||Input.GetKeyDown(KeyCode.KeypadEnter)||Input.GetKeyDown(KeyCode.Space)))RequestStart();
     }
     public void Capture(string name){
         if(!Application.isBatchMode||!Environment.GetCommandLineArgs().Contains("-startup-ui-check")||!canvas)return;

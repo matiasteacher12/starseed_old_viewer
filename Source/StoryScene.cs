@@ -131,14 +131,19 @@ public sealed partial class StoryScene : MonoBehaviour
         }
         if (!uiReady) {if(startup)startup.Close();yield break;}
         loading.gameObject.SetActive(false);
-        if(startup)startup.StopMusic();
+        if(startup){
+            // Keep menu controls absent/inactive and intro music alive until
+            // the user has acknowledged the completed loading screen.
+            stage.gameObject.SetActive(false);
+            yield return startup.Complete();Destroy(startup);startup=null;
+            stage.gameObject.SetActive(true);
+        }
         music=gameObject.AddComponent<AudioSource>();music.loop=true;music.volume=.3f;music.mute=Application.isBatchMode;
         voice=gameObject.AddComponent<AudioSource>();voice.volume=1;
         // Log opening discards the current utterance instead of pausing it.
         // Later modal UnPause calls cannot resume an AudioSource stopped here.
         originalUi.LogOpened+=()=>voice.Stop();
         InitializeEpisode();
-        if(startup){startup.SetProgress(.95f,"archive-menu");yield return null;}
         ready=true;
         if(StoryContent.Load<TextAsset>("story-menu") && !Environment.GetCommandLineArgs().Any(a=>a=="-story-verify"||a=="-old-story-check")) {
             storyMenu=gameObject.AddComponent<OriginalStoryMenu>();
@@ -152,7 +157,6 @@ public sealed partial class StoryScene : MonoBehaviour
                 if(Application.isBatchMode&&!Environment.GetCommandLineArgs().Contains("-instarseed-check"))storyMenu.ShowHome();
             }
         } else {yield return GuardEpisodeLoading(loadingCatalogue.episodes.First(p=>LoadOldCheckPlan()==null||p.scene==LoadOldCheckPlan().scene));}
-        if(startup){yield return startup.Complete();Destroy(startup);startup=null;}
         Debug.Log("STORY_READY menuSeconds="+startupWatch.Elapsed.TotalSeconds.ToString("F3",System.Globalization.CultureInfo.InvariantCulture)+" actors="+episodeActors.Count+" bundles="+loadedBundles.Count+" hashedBytes="+StoryContent.HashedBytes+" hashes="+StoryContent.Hashes+" cacheHits="+StoryContent.CacheHits);
         downloader.Ready();
         if(Environment.GetCommandLineArgs().Contains("-startup-only-check")){Application.Quit(0);yield break;}
