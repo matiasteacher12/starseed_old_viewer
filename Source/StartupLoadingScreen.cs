@@ -9,7 +9,7 @@ using UnityEngine.Video;
 
 // Visual layout from preserved Windows Root_Intro. No login or game scripts.
 public sealed class StartupLoadingScreen:MonoBehaviour {
-    [Serializable] class Layout {public Node[] nodes;public string poster,movie;}
+    [Serializable] class Layout {public Node[] nodes;public string poster,movie,music;}
     [Serializable] class Node {public string path;public bool active,mask;public Vector2 anchorMin,anchorMax,position,size,pivot;public Vector3 scale;public Quaternion rotation;public Picture image;public Caption text;public DropShadow shadow;}
     [Serializable] class Picture {public Color color;public int type,fillMethod,fillOrigin;public bool fillClockwise,fillCenter,preserveAspect;public string file;public Vector4 border;public float ppu;}
     [Serializable] class Caption {public string value,font;public int size,style,alignment;public float spacing;public Color color;}
@@ -20,6 +20,7 @@ public sealed class StartupLoadingScreen:MonoBehaviour {
     float progress;bool finished;string moviePath,assetPrefix;MText downloadText;Image downloadBar;GameObject downloadRoot,loadingRoot;
     public static int Shows {get;private set;}
     public bool MovieDecoded=>movie&&movie.isPrepared&&movie.frame>=0;
+    bool movieStarted;AudioSource introMusic;
     public IEnumerator Prepare(string localBundle=null){
         if(localBundle==null)yield return StoryContent.VerifyAsync("Startup/startup.bundle");
         var request=AssetBundle.LoadFromFileAsync(localBundle??StoryContent.FilePath("Startup/startup.bundle"));yield return request;assets=request.assetBundle;
@@ -52,6 +53,10 @@ public sealed class StartupLoadingScreen:MonoBehaviour {
         var imageGo=new GameObject("Original intro movie",typeof(RectTransform),typeof(RawImage));imageGo.transform.SetParent(surface,false);
         var imgRt=(RectTransform)imageGo.transform;imgRt.anchorMin=Vector2.zero;imgRt.anchorMax=Vector2.one;imgRt.offsetMin=imgRt.offsetMax=Vector2.zero;
         movieImage=imageGo.GetComponent<RawImage>();movieImage.texture=Load<Texture2D>(data.poster);movieImage.raycastTarget=false;
+        if(!string.IsNullOrEmpty(data.music)){
+            introMusic=gameObject.AddComponent<AudioSource>();introMusic.playOnAwake=false;introMusic.loop=true;introMusic.volume=.3f;introMusic.mute=Application.isBatchMode;
+            introMusic.clip=Load<AudioClip>(data.music);introMusic.Play();Debug.Log("STARTUP_MUSIC_STARTED clip="+data.music+" seconds="+introMusic.clip.length);
+        }
         if(!bar||!percent)throw new Exception("Original startup progress controls missing");
         DownloadMode(false);Shows++;if(Shows!=1)throw new Exception("Startup screen repeated");SetProgress(0,"bootstrap");
         Debug.Log("STARTUP_UI_SHOWN nodes="+data.nodes.Length+" beforeCommonResources=true");
@@ -59,7 +64,7 @@ public sealed class StartupLoadingScreen:MonoBehaviour {
         if(localBundle==null)BeginMovie();
     }
     T Load<T>(string file) where T:UnityEngine.Object {var value=assets.LoadAsset<T>(assetPrefix+file.ToLowerInvariant());if(!value)throw new InvalidDataException(file);return value;}
-    public void BeginMovie(){StartCoroutine(PlayMovie());}
+    public void BeginMovie(string verifiedPath=null){if(movieStarted||finished)return;movieStarted=true;StartCoroutine(PlayMovie(verifiedPath));}
     public void DownloadMode(bool active){if(downloadRoot)downloadRoot.SetActive(active);if(loadingRoot)loadingRoot.SetActive(!active);}
     public void DownloadProgress(long done,long total,string phase){
         DownloadMode(true);float value=total>0?Mathf.Clamp01((float)((double)done/total)):0;
@@ -67,10 +72,9 @@ public sealed class StartupLoadingScreen:MonoBehaviour {
         if(downloadText)downloadText.text=phase+"  "+Mathf.FloorToInt(value*100)+"%"+(total>1024?"  ("+(done/1048576d).ToString("F1")+" / "+(total/1048576d).ToString("F1")+" MB)":"");
     }
     public void DownloadError(){DownloadMode(true);if(downloadText)downloadText.text="다운로드를 완료하지 못했습니다. 연결·저장 공간을 확인한 후 Enter로 다시 시도 / Esc로 종료";}
-    IEnumerator PlayMovie(){
-        yield return StoryContent.VerifyAsync(moviePath);
-        StoryContent.SaveVerification();
-        movie=gameObject.AddComponent<VideoPlayer>();movie.playOnAwake=false;movie.audioOutputMode=VideoAudioOutputMode.None;movie.renderMode=VideoRenderMode.APIOnly;movie.isLooping=true;movie.waitForFirstFrame=true;movie.url=StoryContent.FilePath(moviePath);
+    IEnumerator PlayMovie(string verifiedPath){
+        if(verifiedPath==null){yield return StoryContent.VerifyAsync(moviePath);StoryContent.SaveVerification();verifiedPath=StoryContent.FilePath(moviePath);}
+        movie=gameObject.AddComponent<VideoPlayer>();movie.playOnAwake=false;movie.audioOutputMode=VideoAudioOutputMode.None;movie.renderMode=VideoRenderMode.APIOnly;movie.isLooping=true;movie.waitForFirstFrame=true;movie.url=verifiedPath;
         movie.errorReceived+=(player,error)=>Debug.LogWarning("STARTUP_MOVIE_FALLBACK "+error);
         movie.Prepare();float deadline=Time.realtimeSinceStartup+15;
         while(!movie.isPrepared&&Time.realtimeSinceStartup<deadline)yield return null;
@@ -81,6 +85,19 @@ public sealed class StartupLoadingScreen:MonoBehaviour {
         if(value<progress-.0001f||value>1.0001f)throw new Exception("Invalid startup progress");progress=Mathf.Clamp01(value);
         if(bar)bar.fillAmount=progress;if(percent)percent.text=Mathf.FloorToInt(progress*100)+"%";
         Debug.Log("STARTUP_PROGRESS value="+progress.ToString("F4",System.Globalization.CultureInfo.InvariantCulture)+" phase="+phase);
+    }
+    public IEnumerator CheckDownloadMedia(){
+        float deadline=Time.realtimeSinceStartup+12;
+        while((!MovieDecoded||movie.frame<10||!introMusic||introMusic.timeSamples<1000)&&Time.realtimeSinceStartup<deadline)yield return null;
+        if(!MovieDecoded||!introMusic||!introMusic.isPlaying)throw new Exception("Intro media did not start during data verification");
+        long frame=movie.frame;int sample=introMusic.timeSamples;
+        Capture("startup077-before");yield return new WaitForSecondsRealtime(1);
+        Capture("startup077-after");
+        if(movie.frame<=frame||introMusic.timeSamples<=sample||!downloadRoot.activeSelf)throw new Exception("Intro media stalled during data verification");
+        var title=nodes["/Root_Intro/Contens/Copyright/Copyright"].GetComponent<MText>();
+        if(title.text!="Starseed Old Story Viewer"||title.font!=percent.font||title.GetComponent<Image>())throw new Exception("Startup title replacement failed");
+        if(FindObjectsOfType<AudioListener>().Count(a=>a.enabled)!=1)throw new Exception("Multiple audio listeners");
+        Debug.Log("STARTUP_MEDIA_CHECK_OK beforeInstall=true frameFrom="+frame+" frameTo="+movie.frame+" sampleFrom="+sample+" sampleTo="+introMusic.timeSamples+" titleFont="+title.font.name+" video="+movie.width+"x"+movie.height);
     }
     public IEnumerator Complete(){
         SetProgress(1,"ready");yield return null;Capture("startup-100");
@@ -100,7 +117,8 @@ public sealed class StartupLoadingScreen:MonoBehaviour {
         string directory=Path.GetFullPath(Path.Combine(Application.dataPath,"../../RenderChecks"));Directory.CreateDirectory(directory);File.WriteAllBytes(Path.Combine(directory,name+".png"),texture.EncodeToPNG());
         RenderTexture.active=previous;canvas.renderMode=RenderMode.ScreenSpaceOverlay;canvas.worldCamera=null;camera.targetTexture=null;target.Release();Destroy(target);Destroy(texture);Destroy(camera.gameObject);
     }
-    public void Close(){finished=true;StopAllCoroutines();if(movie){movie.Stop();movie.targetTexture=null;movieImage.texture=null;Destroy(movie);movie=null;}if(canvas){canvas.gameObject.SetActive(false);Destroy(canvas.gameObject);canvas=null;}if(clear){Destroy(clear.gameObject);clear=null;}foreach(var sprite in sprites)Destroy(sprite);sprites.Clear();}
+    public void StopMusic(){if(introMusic){introMusic.Stop();Destroy(introMusic);introMusic=null;}}
+    public void Close(){finished=true;StopAllCoroutines();StopMusic();if(movie){movie.Stop();movie.targetTexture=null;movieImage.texture=null;Destroy(movie);movie=null;}if(canvas){canvas.gameObject.SetActive(false);Destroy(canvas.gameObject);canvas=null;}if(clear){Destroy(clear.gameObject);clear=null;}foreach(var sprite in sprites)Destroy(sprite);sprites.Clear();}
     void ReleaseAssets(){if(assets){assets.Unload(true);assets=null;}}
     void OnDestroy(){Close();ReleaseAssets();}
 }

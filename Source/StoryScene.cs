@@ -67,7 +67,7 @@ public sealed partial class StoryScene : MonoBehaviour
     int angryIndex = -1, blinkIndex = -1, mouthIndex = -1;
     float[] audioSamples = new float[256];
     float volume = .03f;
-    bool muted = true;
+    bool muted;
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
     static void Boot() { if (!FindObjectOfType<StoryScene>()) new GameObject("Airen story").AddComponent<StoryScene>(); }
@@ -75,6 +75,9 @@ public sealed partial class StoryScene : MonoBehaviour
     IEnumerator Start()
     {
         Application.targetFrameRate = 60;
+        StoryAudioPreferences.Load(out muted,out volume);AudioListener.volume=muted?0:volume;
+        gameObject.AddComponent<AudioListener>();
+        CheckAudioPreferences();
         var downloader=gameObject.AddComponent<StoryDownloadBootstrap>();Exception downloadFailure=null;
         yield return CatchLoadingFailure(downloader.Run(),e=>downloadFailure=e);
         if(downloadFailure!=null){Debug.LogError("ASSET_DOWNLOAD_SETUP_ERROR "+downloadFailure.Message);if(Application.isBatchMode)Application.Quit(1);else gameObject.AddComponent<StoryContentError>().Message=downloadFailure.Message;yield break;}
@@ -91,7 +94,6 @@ public sealed partial class StoryScene : MonoBehaviour
         if(Application.isBatchMode)
             Application.logMessageReceived+=(message,stack,type)=>{if(type==LogType.Exception)Application.Quit(1);};
         gameObject.AddComponent<StoryWindowAspect>();
-        AudioListener.volume = 0;
         Exception startupFailure=null;
         if(startup)downloader.BeginMovie();
         if(!startup&&StoryContent.HasFile("Startup/startup.bundle")){
@@ -129,7 +131,8 @@ public sealed partial class StoryScene : MonoBehaviour
         }
         if (!uiReady) {if(startup)startup.Close();yield break;}
         loading.gameObject.SetActive(false);
-        music=gameObject.AddComponent<AudioSource>();music.loop=true;music.volume=.3f;
+        if(startup)startup.StopMusic();
+        music=gameObject.AddComponent<AudioSource>();music.loop=true;music.volume=.3f;music.mute=Application.isBatchMode;
         voice=gameObject.AddComponent<AudioSource>();voice.volume=1;
         // Log opening discards the current utterance instead of pausing it.
         // Later modal UnPause calls cannot resume an AudioSource stopped here.
@@ -234,7 +237,6 @@ public sealed partial class StoryScene : MonoBehaviour
         actorCamera.fieldOfView=config.fieldOfView;actorCamera.nearClipPlane=.1f;actorCamera.farClipPlane=1000;
         actorCamera.clearFlags=CameraClearFlags.SolidColor;actorCamera.backgroundColor=Color.clear;
         actorCamera.cullingMask=1<<17;actorCamera.allowHDR=true;actorCamera.allowMSAA=true;
-        actorCamera.gameObject.AddComponent<AudioListener>();
         var extra=actorCamera.GetUniversalAdditionalCameraData();extra.renderPostProcessing=false;
         UpdateRenderTexture();
         var light=new GameObject("Original character directional light").AddComponent<Light>();
@@ -345,7 +347,7 @@ public sealed partial class StoryScene : MonoBehaviour
 
     void Update()
     {
-        if(!ready)return;
+        if(!ready){UpdateAudioHotkeys();return;}
         originalUi.SetVoicePlaying(voice && voice.isPlaying && !originalUi.ModalOpen && !hidden);
         if(!originalUi.NameInputCaptured)UpdateAudioHotkeys();
         if((viewerHome&&viewerHome.Visible)||(storyMenu&&storyMenu.Visible))return;

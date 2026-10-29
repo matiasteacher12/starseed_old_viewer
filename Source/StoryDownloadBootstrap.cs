@@ -15,11 +15,17 @@ public sealed class StoryDownloadBootstrap:MonoBehaviour {
         var hash=Task.Run(()=>StoryContent.Hash(installer.BootstrapBundle));while(!hash.IsCompleted)yield return null;
         if(hash.IsFaulted)throw hash.Exception.GetBaseException();if(hash.Result!=installer.BootstrapHash)throw new Exception("Startup UI hash mismatch");
         Screen=gameObject.AddComponent<StartupLoadingScreen>();yield return Screen.Prepare(installer.BootstrapBundle);
-        var args=Environment.GetCommandLineArgs();bool captured=false;
+        var args=Environment.GetCommandLineArgs();bool captured=false,mediaChecked=false;
         while(true){
             Task install=installer.Install();
             while(!install.IsCompleted){
                 Screen.DownloadProgress(Interlocked.Read(ref installer.Done),Interlocked.Read(ref installer.Total),installer.Phase);
+                if(installer.ReadyMovie!=null){
+                    Screen.BeginMovie(installer.ReadyMovie);
+                    if(Application.isBatchMode&&args.Contains("-startup-media-check")&&!mediaChecked){
+                        yield return Screen.CheckDownloadMedia();mediaChecked=true;installer.ReleaseMediaProbe();
+                    }
+                }
                 if(!captured&&installer.Requests>0){Screen.Capture("download-076");captured=true;}
                 yield return null;
             }
@@ -30,6 +36,7 @@ public sealed class StoryDownloadBootstrap:MonoBehaviour {
                 if(Input.GetKeyDown(KeyCode.Escape)){Application.Quit();yield break;}yield return null;
             }
         }
+        if(installer.ReadyMovie!=null)Screen.BeginMovie(installer.ReadyMovie);
         installer.SaveVerification();StoryContent.InstalledRoot=installer.ContentRoot;Installed=true;
         Debug.Log("ASSET_INSTALL_OK networkRequests="+installer.Requests+" downloaded="+installer.NeededDownload+" root="+installer.ContentRoot);
         if(Application.isBatchMode&&args.Contains("-download-only-check")){Screen.Close();Application.Quit(0);yield break;}

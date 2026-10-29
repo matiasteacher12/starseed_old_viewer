@@ -1,29 +1,18 @@
 {
-  "version": "0.7.6",
-  "catalogSha256": "94fda88118f7b9053465dfddfccf8d4838ebfc16f75c7ff04d4eb8190275fe12",
-  "assemblySha256": "ed764f5d010c06a4bfc5ba7d36e2fa7f258e3fff4d85af0b1bf5e4aab2a8bec0",
-  "logicalReferences": 998,
-  "uniqueObjects": 920,
-  "transportCases": [
-    "fresh",
-    "warm",
-    "resume",
-    "ignore",
-    "truncate",
-    "hash-failure",
-    "bad-object",
-    "traversal",
-    "unavailable",
-    "repair",
-    "snapshot"
-  ],
+  "version": "0.7.7",
+  "catalogSha256": "f849bc9a9236ef3795058332a94ccfd3d16b3a59516a0cdd2615df49cbbdcace",
+  "assemblySha256": "19eb2cfa2884d78dda29f55da2a30f6d6c754ce38760e57d00ea3e0aacc65c7d",
+  "bootstrapSha256": "7fba74b445c8bec4a365c102db019f3d4e10f9dcbdb4c931d0a833c9d318acbd",
   "runtimeChecks": [
     "cold",
     "warm",
-    "menu",
-    "instarseed",
-    "loading"
+    "audio-write",
+    "audio-read",
+    "menu"
   ],
-  "offlineAfterInstall": true,
+  "transportCases": 11,
+  "existingContentUnchanged": 997,
+  "dataRelease": "assets-v0.7.6",
+  "muteAndVolumePersist": true,
   "userStateIncluded": false
 }

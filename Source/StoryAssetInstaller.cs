@@ -24,6 +24,10 @@ public sealed class StoryAssetInstaller : IDisposable {
     public volatile string Phase="데이터 확인 중…";
     public long Done,Total;public int Requests;
     public bool NeededDownload {get;private set;}
+    public volatile string ReadyMovie;
+    readonly bool mediaProbe;
+    readonly ManualResetEventSlim mediaProbeGate=new ManualResetEventSlim(false);
+    public void ReleaseMediaProbe()=>mediaProbeGate.Set();
     public static StoryAssetInstaller Create(){
         string app=Path.GetFullPath(Path.Combine(Application.dataPath,".."));
         string config=Path.Combine(app,"Bootstrap","install.json"),destination=Path.Combine(app,"Content");
@@ -54,6 +58,7 @@ public sealed class StoryAssetInstaller : IDisposable {
         }
         if(covered.Count!=objects.Count)throw new InvalidDataException("Incomplete download plan");
         verification=new StoryContentVerification(root,plan.catalogSha256);
+        mediaProbe=Application.isBatchMode&&Environment.GetCommandLineArgs().Contains("-startup-media-check");
     }
     string ObjectPath(string h)=>Path.Combine(store,"referenced",h.Substring(0,2),h);
     void CheckCancel(){cancel.Token.ThrowIfCancellationRequested();}
@@ -64,6 +69,7 @@ public sealed class StoryAssetInstaller : IDisposable {
         catch(InvalidDataException){return false;}
     }
     public Task Install()=>Task.Run(()=>{
+        Phase="데이터 확인 중…";
         Directory.CreateDirectory(store);Directory.CreateDirectory(downloads);Directory.CreateDirectory(root);
         // One installer per destination; the ordinary asset byte lock is also
         // held for every publication, shared with the renderer/import tools.
@@ -75,9 +81,15 @@ public sealed class StoryAssetInstaller : IDisposable {
             var checkedStore=new StoryAssetStore(root,"../asset-store",catalog.storeId);
             if(StoryContent.Hash(BootstrapBundle)!=plan.bootstrapSha256)throw new InvalidDataException("Bootstrap hash mismatch");
             if(!Verified(plan.bootstrapSha256)){string tmp=Path.Combine(downloads,plan.bootstrapSha256+".object");File.Copy(BootstrapBundle,tmp,true);PublishObject(tmp,plan.bootstrapSha256);}
+            // Verify the installed intro first, on this same worker/cache. The
+            // screen can play that immutable object while other hashes run.
+            var intro=catalog.files.FirstOrDefault(f=>f.path=="Startup/intro_background.mp4");
+            bool introReady=intro!=null&&Verified(intro.sha256);
+            if(introReady)PublishMovie(checkedStore,intro);
+            if(mediaProbe&&introReady&&!mediaProbeGate.Wait(TimeSpan.FromSeconds(30),cancel.Token))throw new TimeoutException("Startup media probe not released");
             var missing=new HashSet<string>();long checkedCount=0;Interlocked.Exchange(ref Total,objects.Count);Interlocked.Exchange(ref Done,0);
-            foreach(var h in objects.Keys){CheckCancel();if(!Verified(h))missing.Add(h);Interlocked.Exchange(ref Done,++checkedCount);}
-            var parts=plan.parts.Where(p=>p.objects.Any(missing.Contains)).ToArray();NeededDownload=parts.Length>0;
+            foreach(var h in objects.Keys){CheckCancel();if(!(introReady&&h==intro.sha256)&&!Verified(h))missing.Add(h);Interlocked.Exchange(ref Done,++checkedCount);}
+            var parts=plan.parts.Where(p=>p.objects.Any(missing.Contains)).OrderByDescending(p=>intro!=null&&p.objects.Contains(intro.sha256)).ToArray();NeededDownload=parts.Length>0;
             Interlocked.Exchange(ref Total,parts.Sum(p=>p.bytes));Interlocked.Exchange(ref Done,0);long completed=0;
             foreach(var part in parts){
                 CheckCancel();Phase="애셋 다운로드 중…";string archive=Path.Combine(downloads,part.name);
@@ -99,6 +111,7 @@ public sealed class StoryAssetInstaller : IDisposable {
                         string tmp=Path.Combine(downloads,h+".object");
                         using(var input=entry.Open())using(var output=new FileStream(tmp,FileMode.Create,FileAccess.Write,FileShare.None)){var buffer=new byte[1024*1024];int n;while((n=input.Read(buffer,0,buffer.Length))>0){CheckCancel();output.Write(buffer,0,n);}output.Flush(true);}
                         PublishObject(tmp,h);missing.Remove(h);
+                        if(intro!=null&&h==intro.sha256)PublishMovie(checkedStore,intro);
                     }
                 }
             }
@@ -114,6 +127,18 @@ public sealed class StoryAssetInstaller : IDisposable {
             Phase="데이터 준비 완료";
         }
     },cancel.Token);
+    void PublishMovie(StoryAssetStore checkedStore,StoryContent.FileEntry intro){
+        using(checkedStore.Acquire()){
+            string path=checkedStore.Resolve(intro);
+            try {if(!verification.IsVerified(path,intro))verification.Accept(intro,verification.VerifyBytes(path,intro));}
+            catch(InvalidDataException){
+                string quarantine=Path.Combine(store,"quarantine");Directory.CreateDirectory(quarantine);
+                File.Move(path,Path.Combine(quarantine,intro.sha256+"-view-"+Guid.NewGuid().ToString("N")+".mp4"));
+                path=checkedStore.Resolve(intro);verification.Accept(intro,verification.VerifyBytes(path,intro));
+            }
+            ReadyMovie=path;
+        }
+    }
     void PublishObject(string temporary,string h){
         if(new FileInfo(temporary).Length!=objects[h].bytes||StoryContent.Hash(temporary)!=h)throw new InvalidDataException("Object SHA-256 mismatch");
         using(StoryAssetStore.AcquireDirectory(store)){

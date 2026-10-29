@@ -24,5 +24,17 @@ public sealed partial class StoryScene {
             default:return;
         }
         AudioListener.volume=muted?0:volume;
+        StoryAudioPreferences.Save(muted,volume);
+    }
+    void CheckAudioPreferences(){
+        if(!Application.isBatchMode)return;
+        var args=Environment.GetCommandLineArgs();int i=Array.IndexOf(args,"-audio-settings-check");if(i<0)return;
+        string mode=args[i+1];bool expected=mode.EndsWith("muted",StringComparison.Ordinal);
+        if(mode.StartsWith("write-",StringComparison.Ordinal)){
+            if(muted!=expected)HandleAudioHotkey(KeyCode.M);
+            volume=.03f;HandleAudioHotkey(KeyCode.Equals);
+        }
+        if(muted!=expected||Mathf.Abs(volume-.04f)>.00001f||Mathf.Abs(AudioListener.volume-(expected?0:.04f))>.00001f)throw new InvalidOperationException("Audio preference persistence failed");
+        Debug.Log("AUDIO_PREFERENCES_OK "+mode+" volume="+volume);
     }
 }

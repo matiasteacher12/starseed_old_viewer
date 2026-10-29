@@ -2,8 +2,8 @@
   "schemaVersion": 1,
   "contentApi": 2,
   "packId": "core",
-  "version": "0.7.6",
-  "minAppVersion": "0.7.6",
+  "version": "0.7.7",
+  "minAppVersion": "0.7.7",
   "resourceBundle": "story-resources.bundle",
   "resources": [
     {
@@ -21350,8 +21350,8 @@
     },
     {
       "path": "Startup/startup.bundle",
-      "sha256": "19ae4957749a9aa64dff78779aab7c5acada3a0ea234d1d8b2e4d2d6d49f33a8",
-      "bytes": 3515706
+      "sha256": "7fba74b445c8bec4a365c102db019f3d4e10f9dcbdb4c931d0a833c9d318acbd",
+      "bytes": 8686251
     }
   ],
   "resourceBundles": [

@@ -1,8 +1,8 @@
 {
   "schema": 1,
-  "version": "0.7.6",
-  "catalogSha256": "94fda88118f7b9053465dfddfccf8d4838ebfc16f75c7ff04d4eb8190275fe12",
-  "bootstrapSha256": "19ae4957749a9aa64dff78779aab7c5acada3a0ea234d1d8b2e4d2d6d49f33a8",
+  "version": "0.7.7",
+  "catalogSha256": "f849bc9a9236ef3795058332a94ccfd3d16b3a59516a0cdd2615df49cbbdcace",
+  "bootstrapSha256": "7fba74b445c8bec4a365c102db019f3d4e10f9dcbdb4c931d0a833c9d318acbd",
   "parts": [
     {
       "name": "assets-0.7.6-01.zip",
