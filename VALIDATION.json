@@ -1,18 +1,14 @@
 {
-  "version": "0.7.7",
+  "appVersion": "0.7.8",
   "catalogSha256": "f849bc9a9236ef3795058332a94ccfd3d16b3a59516a0cdd2615df49cbbdcace",
-  "assemblySha256": "19eb2cfa2884d78dda29f55da2a30f6d6c754ce38760e57d00ea3e0aacc65c7d",
-  "bootstrapSha256": "7fba74b445c8bec4a365c102db019f3d4e10f9dcbdb4c931d0a833c9d318acbd",
-  "runtimeChecks": [
-    "cold",
-    "warm",
-    "audio-write",
-    "audio-read",
-    "menu"
+  "assemblySha256": "6729ee8587724e3e1c4667f1a8b686846b8acd0a8af349a6d99a9f4702a10905",
+  "assetChanges": false,
+  "checks": [
+    "native startup",
+    "installed startup",
+    "rendered title under logo",
+    "user state preserved"
   ],
-  "transportCases": 11,
-  "existingContentUnchanged": 997,
-  "dataRelease": "assets-v0.7.6",
-  "muteAndVolumePersist": true,
-  "userStateIncluded": false
+  "priorContentValidationVersion": "0.7.7",
+  "dataRelease": "assets-v0.7.6"
 }

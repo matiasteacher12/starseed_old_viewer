@@ -49,6 +49,15 @@ public sealed class StartupLoadingScreen:MonoBehaviour {
             if(n.path.EndsWith("/SafeArea/DownLoad"))downloadRoot=rt.gameObject;
             if(n.path.EndsWith("/SafeArea/Loading"))loadingRoot=rt.gameObject;
         }
+        // Viewer branding follows the logo, independently of the original
+        // bottom copyright slot retained in the immutable layout bundle.
+        var title=nodes["/Root_Intro/Contens/Copyright/Copyright"].GetComponent<MText>();
+        if(title&&title.text=="Starseed Old Story Viewer"){
+            var rt=title.rectTransform;rt.SetParent(nodes["/Root_Intro/Logo/Img_logo"],false);
+            rt.anchorMin=rt.anchorMax=new Vector2(.5f,0);rt.pivot=new Vector2(.5f,1);
+            rt.anchoredPosition=Vector2.zero;rt.sizeDelta=new Vector2(654,42);rt.localScale=Vector3.one;
+            title.resizeTextForBestFit=false;title.fontSize=30;title.alignment=TextAnchor.MiddleCenter;
+        }
         var surface=nodes["/Root_Intro/Image"];surface.GetComponent<Image>().enabled=false;
         var imageGo=new GameObject("Original intro movie",typeof(RectTransform),typeof(RawImage));imageGo.transform.SetParent(surface,false);
         var imgRt=(RectTransform)imageGo.transform;imgRt.anchorMin=Vector2.zero;imgRt.anchorMax=Vector2.one;imgRt.offsetMin=imgRt.offsetMax=Vector2.zero;
