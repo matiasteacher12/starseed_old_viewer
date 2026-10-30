@@ -2,6 +2,22 @@
 
 Windows 64비트 독립 뷰어입니다. 메인 스토리 94화와 인스타시드를 제공합니다.
 
+## 화면 미리보기
+
+### 메인 메뉴
+
+![스토리와 인스타시드를 선택하는 메인 메뉴](docs/screenshots/main-menu.png)
+
+### 스토리 메뉴
+
+![메인 스토리와 스토리 분류 메뉴](docs/screenshots/story-menu.png)
+
+### 에피소드 목록
+
+![메인 스토리 1장의 에피소드 선택 화면](docs/screenshots/story-episodes.png)
+
+메뉴 화면은 0.7.6~0.7.7 검증 빌드에서 캡처했습니다.
+
 ## 실행
 
 1. 이 저장소를 clone하거나 Code → Download ZIP으로 받아 압축을 풉니다.
