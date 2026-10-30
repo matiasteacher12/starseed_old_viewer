@@ -8,7 +8,7 @@ using UnityEngine;
 using UnityEngine.UI;
 
 // Preserved UI assets; only local data, navigation and missing game scrollers are replaced.
-public sealed class OriginalInstarseedUi : MonoBehaviour {
+public sealed partial class OriginalInstarseedUi : MonoBehaviour {
     [Serializable] class Config {public string uiBundle;public string[] extraBundles;public OriginalStoryMenu.Page[] pages;public LocalText[] localization;}
     [Serializable] class LocalText {public string key,value;}
     Config config;AssetBundle bundle;RectTransform stage;GameObject frame,shell,current,holder;
@@ -55,13 +55,13 @@ public sealed class OriginalInstarseedUi : MonoBehaviour {
     }
     GameObject Prefab(string name){
         if(prefabs.TryGetValue(name,out var asset))return asset;
-        var path=config.pages.First(p=>p.name==name).asset;
+        var path=config.pages.FirstOrDefault(p=>p.name==name)?.asset??bundleNames.Single(n=>n.EndsWith("/"+name+".prefab",StringComparison.OrdinalIgnoreCase));
         asset=bundle.LoadAsset<GameObject>(bundleNames.First(n=>string.Equals(n,path,StringComparison.OrdinalIgnoreCase)));
         if(!asset)throw new InvalidDataException(path);prefabs[name]=asset;return asset;
     }
     GameObject Page(string name){
         if(pages.TryGetValue(name,out var page))return page;
-        page=Make("Root_Instarseed_"+name,shell.transform.Find("Center/SafeArea/Stack_Home"));
+        page=Make(name=="Chatting"?"Popup_Instarseed_Chatting":"Root_Instarseed_"+name,shell.transform.Find("Center/SafeArea/Stack_Home"));
         Stretch(page.transform);page.SetActive(false);pages[name]=page;return page;
     }
     GameObject Make(string name,Transform parent){var go=Instantiate(Prefab(name),holder.transform,false);go.name=name;Prepare(go);go.SetActive(false);go.transform.SetParent(parent,false);go.SetActive(true);return go;}
@@ -79,6 +79,7 @@ public sealed class OriginalInstarseedUi : MonoBehaviour {
     static void ReleaseRow(GameObject row){foreach(var lease in row.GetComponentsInChildren<InstarseedRowAssets>(true))lease.Release();row.SetActive(false);Destroy(row);}
     void ClearRows(){foreach(var row in rows)if(row.go)ReleaseRow(row.go);rows.Clear();scroll=null;content=null;}
     void Show(string name,Action previous,int tab){ClearRows();foreach(var p in pages.Values)p.SetActive(false);frame.SetActive(true);frame.transform.SetAsLastSibling();pictures.Retain(true);current=Page(name);current.SetActive(true);back=previous;
+        Active(shell,"Center/HUD_Top/Top/Favor_Top/Time",name!="Chatting");
         var keys=new[]{"Home","Follower","Special"};for(int i=0;i<3;i++){var path="Center/HUD_Btm/Layout/Toggle_"+keys[i];shell.transform.Find(path).GetComponent<Toggle>().SetIsOnWithoutNotify(i==tab);Active(shell,path+"/On",i==tab);Active(shell,path+"/Off",i!=tab);Off(shell,path+"/New");}
         Canvas.ForceUpdateCanvases();Debug.Log("INSTARSEED_NATIVE_PAGE "+name);
     }
@@ -139,7 +140,7 @@ public sealed class OriginalInstarseedUi : MonoBehaviour {
         var more=row.transform.Find("Comment_More");Place(more,0,176+mediaHeight+bodyHeight,1280,60);Set(row,"Comment_More/Text_More","댓글 "+data.replies.Count(r=>r.post==post.id)+"개 모두 보기");Bind(row,"Comment_More",()=>ShowComments(post));return row;
     }
     public void ShowProfiles(){Show("Follower",()=>ShowFeed(),1);Bind(current,"Ani/Top/Btn_Back",Back);var template=current.transform.Find("Ani/ScrollView/Viewport/Content/List_Instarseed_Follower").gameObject;Scroller("Ani/ScrollView");foreach(var person in data.profiles.OrderBy(p=>p.name,StringComparer.CurrentCulture)){var p=person;Add(140,parent=>{var row=Instantiate(template,parent,false);Prepare(row);var alpha=row.GetComponent<CanvasGroup>();if(alpha)alpha.alpha=1;row.SetActive(true);Set(row,"Info/ID/Text_id",p.name);Set(row,"Info/Post/Text_Num",data.posts.Count(x=>x.profile==p.id).ToString());Picture(row,"Portrait/Mask/Img_Portrait",p.icon);Off(row,"Portrait/New");Bind(row,"Btn_Profile",()=>ShowProfile(p));return row;});}Refresh();}
-    public void ShowProfile(InstarseedView.Profile person){Show("Profile",ShowProfiles,1);Disabled(current,"Ani/Top_FollowerList/Btn_Greeting");Bind(current,"Ani/Top_FollowerList/Btn_Back",ShowProfiles);Set(current,"Ani/Top_FollowerList/Layout_Title/Text_ID",person.name);Scroller("Ani/Scroll View");var posts=data.posts.Where(p=>p.profile==person.id).ToArray();float infoHeight=Mathf.Max(150,TextHeight(person.description,1224,32)+20);float headerHeight=270+infoHeight;Add(headerHeight,parent=>{var row=Make(ProfileCell,parent);Manual(row);Picture(row,"Portrait/Mask/Img_Portrait",person.icon);Off(row,"Portrait/New");Off(row,"Deta/Favor");Off(row,"Deta/PostInfo");Set(row,"Deta/Post_1/Text_Num",posts.Length.ToString());Off(row,"Link");Off(row,"Buttons");Place(row.transform.Find("Portrait"),28,20,160,160);Place(row.transform.Find("Deta"),220,32,1020,150);var info=row.transform.Find("Info");Manual(info.gameObject);Place(info,28,214,1224,infoHeight);Set(row,"Info/Text",person.description);Stretch(info.Find("Text"));Place(row.transform.Find("Menu"),24,headerHeight-45,1232,45);return row;});
+    public void ShowProfile(InstarseedView.Profile person){Show("Profile",ShowProfiles,1);Disabled(current,"Ani/Top_FollowerList/Btn_Greeting");Bind(current,"Ani/Top_FollowerList/Btn_Back",ShowProfiles);Set(current,"Ani/Top_FollowerList/Layout_Title/Text_ID",person.name);Scroller("Ani/Scroll View");var posts=data.posts.Where(p=>p.profile==person.id).ToArray();float infoHeight=Mathf.Max(150,TextHeight(person.description,1224,32)+20);float headerHeight=270+infoHeight;Add(headerHeight,parent=>{var row=Make(ProfileCell,parent);Manual(row);Picture(row,"Portrait/Mask/Img_Portrait",person.icon);Off(row,"Portrait/New");Off(row,"Deta/Favor");Off(row,"Deta/PostInfo");Set(row,"Deta/Post_1/Text_Num",posts.Length.ToString());Off(row,"Link");ConfigureMessageButton(row,person);Place(row.transform.Find("Portrait"),28,20,160,160);Place(row.transform.Find("Deta"),220,32,1020,150);var info=row.transform.Find("Info");Manual(info.gameObject);Place(info,28,214,1224,infoHeight);Set(row,"Info/Text",person.description);Stretch(info.Find("Text"));Place(row.transform.Find("Menu"),24,headerHeight-45,1232,45);return row;});
         for(int i=0;i<posts.Length;i+=3){int start=i;Add(426,parent=>{var row=Make(AlbumCell,parent);Off(row,"Empty");for(int j=0;j<3;j++){string path="Anchor_"+(j+1)+"/Slot_Album";bool exists=start+j<posts.Length;Active(row,"Anchor_"+(j+1),exists);if(!exists)continue;var p=posts[start+j];Off(row,path+"/Empty");Picture(row,path+"/Img_Preview",p.thumbnail);Active(row,path+"/Icon_video",p.type==1);Bind(row,path+"/Img_Preview",()=>{ShowFeed(false,p);back=()=>ShowProfile(person);});}return row;});}Refresh();}
     public void ShowComments(InstarseedView.Post post){Show("Comment",()=>ShowFeed(false,post),0);Bind(current,"Ani/Top/Btn_Back",Back);Scroller("Ani/Scroll View");AddComment(data.profiles.First(p=>p.id==post.profile),post.text,"commentCellViewPrefab",false);
         var replies=data.replies.Where(r=>r.post==post.id).OrderBy(r=>r.order).ThenBy(r=>r.id).ToArray();foreach(var r in replies)AddComment(data.profiles.First(p=>p.id==r.author),r.text,r.parent==0?"replyCellViewPrefab":"matchReplyCellViewPrefab",r.parent!=0);Refresh();Debug.Log("INSTARSEED_NATIVE_COMMENTS "+post.id+" replies="+replies.Length);}

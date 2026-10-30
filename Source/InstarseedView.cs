@@ -40,6 +40,7 @@ public sealed class InstarseedView : MonoBehaviour {
         ShowHome();
     }
     void EnsureData(){if(data!=null)return;data=BackendJson.FromJson<Catalogue>(File.ReadAllText(StoryContent.FilePath("Instarseed/catalog.json")));if(data.schema!=1)throw new InvalidDataException("Unsupported Instarseed catalog");
+        var additions=StoryContent.Load<TextAsset>("instarseed-profiles-additions");if(additions){var profiles=BackendJson.FromJson<Catalogue>(additions.text).profiles;data.profiles=data.profiles.Concat(profiles).ToArray();data.images=data.images.Concat(profiles.Select(p=>p.icon)).Distinct().ToArray();}
         var e=BackendJson.FromJson<EmojiData>(File.ReadAllText(StoryContent.FilePath("Instarseed/emoji.json")));var sheet=new Texture2D(2,2,TextureFormat.RGBA32,false);if(!sheet.LoadImage(File.ReadAllBytes(StoryContent.FilePath("Instarseed/emoji.png"))))throw new InvalidDataException("Emoji sheet");
         emoji=ScriptableObject.CreateInstance<TMP_SpriteAsset>();emoji.name="Emoji_Text";JsonUtility.FromJsonOverwrite("{\"m_Version\":\"1.1.0\"}",emoji);emoji.spriteSheet=sheet;emoji.material=new Material(Shader.Find("TextMeshPro/Sprite"));emoji.material.mainTexture=sheet;
         foreach(var g in e.glyphs)emoji.spriteGlyphTable.Add(new TMP_SpriteGlyph(g.index,new GlyphMetrics(g.metrics[0],g.metrics[1],g.metrics[2],g.metrics[3],g.metrics[4]),new GlyphRect(g.x,g.y,g.width,g.height),g.scale,0));
@@ -56,7 +57,8 @@ public sealed class InstarseedView : MonoBehaviour {
     public void Hide(){if(mediaRoutine!=null){StopCoroutine(mediaRoutine);mediaRoutine=null;}video.Stop();root.gameObject.SetActive(false);if(native)native.Hide();if(nativeVideo){Destroy(nativeVideo);nativeVideo=null;}}
     public void ShowHome(){Clear("home");ViewerHomeMenu.Draw(root,font,()=>story.ShowHome(),()=>{profile=0;page=0;ShowFeed();});}
     void Header(string title,Action back){Button(root,"뒤로",32,22,126,44,back,panel,19);Label(root,title,184,23,840,42,28,ink);Button(root,"홈",1152,22,96,44,ShowHome,panel,19);Box(root,"Divider",32,82,1216,1,new Color(.18f,.27f,.33f));}
-    void EnsureNative(){EnsureData();if(native)return;native=gameObject.AddComponent<OriginalInstarseedUi>();native.Initialize(stage,font,emoji,data,ShowHome);native.PlayVideo=ShowPost;}
+    void EnsureNative(){EnsureData();if(native)return;native=gameObject.AddComponent<OriginalInstarseedUi>();native.Initialize(stage,font,emoji,data,ShowHome);native.PlayVideo=ShowPost;native.OpenDate=(ep,returned)=>{Hide();story.OpenExternalEpisode(ep,()=>{root.gameObject.SetActive(false);screen="feed";returned();VideoMode?.Invoke(false);});};native.DateIsRead=story.IsRead;}
+    public OriginalInstarseedUi MessageUi {get{EnsureNative();root.gameObject.SetActive(false);screen="feed";return native;}}
     public void ShowFeed(){EnsureNative();Clear("feed");root.gameObject.SetActive(false);native.ShowFeed();}
     void ShowProfiles(){EnsureNative();Clear("profiles");root.gameObject.SetActive(false);native.ShowProfiles();}
     public void ShowPost(Post post){EnsureNative();Clear("post");root.gameObject.SetActive(false);selected=post;

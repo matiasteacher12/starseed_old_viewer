@@ -20,6 +20,7 @@ public sealed class OriginalStoryMenu : MonoBehaviour {
     public Action<Episode> PlayEpisode;
     public Action Shown;
     public Action ReturnToViewer;
+    Action externalReturn;
     public Data Catalogue {get;private set;}
     readonly Dictionary<string,GameObject> pages=new Dictionary<string,GameObject>();
     readonly Dictionary<string,Sprite> images=new Dictionary<string,Sprite>();
@@ -247,6 +248,7 @@ public sealed class OriginalStoryMenu : MonoBehaviour {
         if(!ep.playable){Notify("이 이야기는 아직 재생 준비 중입니다.");return;}
         SaveScroll();playing=ep;current.SetActive(false);notice.gameObject.SetActive(false);PlayEpisode?.Invoke(ep);
     }
+    public void OpenExternalEpisode(Episode ep,Action returned) {externalReturn=returned;OpenEpisode(ep);}
     public void ReturnFromEpisode(bool completed) {
         if(completed&&playing!=null) {
             if(Application.isBatchMode) {
@@ -256,6 +258,7 @@ public sealed class OriginalStoryMenu : MonoBehaviour {
             Debug.Log("STORY_PROGRESS_SAVED "+playing.id);
         }
         playing=null;
+        if(externalReturn!=null){var callback=externalReturn;externalReturn=null;Hide();callback();return;}
         if(selected!=null)ShowChapter(selected);else ShowHome();
     }
     public void Hide(){SaveScroll();foreach(var page in pages.Values)page.SetActive(false);if(notice)notice.gameObject.SetActive(false);}

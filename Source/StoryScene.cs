@@ -166,6 +166,7 @@ public sealed partial class StoryScene : MonoBehaviour
         downloader.Ready();
         if(Environment.GetCommandLineArgs().Contains("-startup-only-check")){Application.Quit(0);yield break;}
         if(Environment.GetCommandLineArgs().Contains("-instarseed-check"))StartCoroutine(viewerHome.Check());
+        if(Environment.GetCommandLineArgs().Any(a=>a=="-messages-check"||a=="-dates-suite"))StartCoroutine(CheckDates());
         if(Environment.GetCommandLineArgs().Contains("-loading-smoke-check"))StartCoroutine(CheckDemandLoading());
         if(Environment.GetCommandLineArgs().Contains("-expansion-connect-check"))StartCoroutine(CheckExpansionConnections());
         if(Environment.GetCommandLineArgs().Contains("-asset-store-media-check"))StartCoroutine(CheckAssetStoreMedia());
