@@ -12,7 +12,9 @@ public sealed partial class StoryScene {
         ready=false;int maximum=0;
         // Null mesh pointers verified in the preserved Android prefab graph.
         var authoredEmpty=new[]{"Character/Prefabs/c_ranger_mana_1|addition1","Character/Prefabs/npc_pollux_1|vr","Character/Prefabs/npc_pollux_1|body_shadow","Character/Prefabs/npc_pollux_1|remote"};
-        foreach(var plan in loadingCatalogue.episodes) {
+        var arguments=Environment.GetCommandLineArgs();int startArg=Array.IndexOf(arguments,"-loading-start"),countArg=Array.IndexOf(arguments,"-loading-count");
+        var plans=loadingCatalogue.episodes.Skip(startArg>=0?int.Parse(arguments[startArg+1]):0).Take(countArg>=0?int.Parse(arguments[countArg+1]):int.MaxValue).ToArray();
+        foreach(var plan in plans) {
             yield return PrepareSelectedEpisode(plan);
             maximum=Math.Max(maximum,episodeActors.Count);
             if(episodeActors.Count!=episode.actors.Length||episodeActors.Values.Any(a=>a.gameObject.activeSelf))throw new Exception("Unexpected actor residency");
@@ -26,7 +28,7 @@ public sealed partial class StoryScene {
             foreach(var key in plan.resources)if(!StoryContent.Load<UnityEngine.Object>(key))throw new Exception("Missing selected media "+key);
             Debug.Log("DEMAND_EPISODE_OK "+plan.id);
         }
-        Debug.Log("DEMAND_LOADING_OK episodes="+loadingCatalogue.episodes.Length+" maxActors="+maximum+" hashes="+StoryContent.Hashes+" hashedBytes="+StoryContent.HashedBytes);
+        Debug.Log("DEMAND_LOADING_OK episodes="+plans.Length+" maxActors="+maximum+" hashes="+StoryContent.Hashes+" hashedBytes="+StoryContent.HashedBytes);
         Application.Quit(0);
     }
 }

@@ -14,6 +14,7 @@ using UnityEngine.U2D;
 // and input in the standalone excerpt; it does not run the original game code.
 public sealed partial class OriginalStoryUi : MonoBehaviour
 {
+    [Serializable] class ExpansionFonts {public string[] resources;}
     public GameObject Root { get; private set; }
     public GameObject Dialogue { get; private set; }
     public GameObject Choices { get; private set; }
@@ -86,6 +87,8 @@ public sealed partial class OriginalStoryUi : MonoBehaviour
         var symbolFallback=StoryContent.Load<TMP_FontAsset>("Original/SymbolB1F8");
         if(Body.font.fallbackFontAssetTable==null)Body.font.fallbackFontAssetTable=new System.Collections.Generic.List<TMP_FontAsset>();
         if(symbolFallback&&!Body.font.fallbackFontAssetTable.Contains(symbolFallback))Body.font.fallbackFontAssetTable.Add(symbolFallback);
+        var additionalFonts=StoryContent.Load<TextAsset>("story-expansion-fonts");
+        if(additionalFonts)foreach(var key in BackendJson.FromJson<ExpansionFonts>(additionalFonts.text).resources){var extra=StoryContent.Load<TMP_FontAsset>(key);if(!extra)throw new InvalidOperationException("Missing story fallback font "+key);if(!Body.font.fallbackFontAssetTable.Contains(extra))Body.font.fallbackFontAssetTable.Add(extra);}
         // The Korean build still uses legacy Text for log paragraphs.
         // Bind those paragraphs to the same TMP text adapter as dialogue,
         // retaining the cloned prefab's RectTransform and authored font size.
@@ -279,12 +282,15 @@ public sealed partial class OriginalStoryUi : MonoBehaviour
     static void SetLogPortrait(Transform row,string spriteName)
     {
         var sprite=OriginalPortrait(spriteName);
-        var image=row.Find("Char/Img/Mask/Img").GetComponent<Image>();image.overrideSprite=null;image.sprite=sprite;
+        var image=row.Find("Char/Img/Mask/Img").GetComponent<Image>();image.overrideSprite=null;image.sprite=sprite;image.enabled=sprite;
     }
-    static Sprite OriginalPortrait(string spriteName) {
+    public static Sprite OriginalPortrait(string spriteName) {
         var atlas=AssetBundle.GetAllLoadedAssetBundles()
             .SelectMany(b=>b.GetAllAssetNames().Where(n=>n.EndsWith("/icon_portrait.spriteatlas",StringComparison.OrdinalIgnoreCase)).Select(n=>b.LoadAsset<SpriteAtlas>(n))).FirstOrDefault();
         var sprite=atlas?atlas.GetSprite(spriteName):null;
+        // Exact old table reference absent from its preserved 611-sprite atlas.
+        // Keep the original frame/name and omit this image; never guess a face.
+        if(!sprite&&(spriteName=="character_pharah_01"||spriteName=="character_shiyuan_01")){Debug.LogWarning("STORY_SOURCE_PORTRAIT_GAP "+spriteName);return null;}
         if(!sprite)throw new InvalidOperationException("Original log portrait missing: "+spriteName);
         return sprite;
     }

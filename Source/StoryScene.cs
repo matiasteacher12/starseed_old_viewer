@@ -167,6 +167,7 @@ public sealed partial class StoryScene : MonoBehaviour
         if(Environment.GetCommandLineArgs().Contains("-startup-only-check")){Application.Quit(0);yield break;}
         if(Environment.GetCommandLineArgs().Contains("-instarseed-check"))StartCoroutine(viewerHome.Check());
         if(Environment.GetCommandLineArgs().Contains("-loading-smoke-check"))StartCoroutine(CheckDemandLoading());
+        if(Environment.GetCommandLineArgs().Contains("-expansion-connect-check"))StartCoroutine(CheckExpansionConnections());
         if(Environment.GetCommandLineArgs().Contains("-asset-store-media-check"))StartCoroutine(CheckAssetStoreMedia());
         if(Environment.GetCommandLineArgs().Contains("-all-main-check"))StartCoroutine(CheckAllMain());
         if(Environment.GetCommandLineArgs().Contains("-old-background-check"))StartCoroutine(CheckOldBackgrounds());

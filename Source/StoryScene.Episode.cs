@@ -97,6 +97,10 @@ public sealed partial class StoryScene {
             foreach(var command in commands) {
                 currentCommandIndex=flatIndex++;
                 var a=command.args;
+                if(!string.IsNullOrEmpty(command.sourceGap)){
+                    Debug.LogWarning("STORY_SOURCE_RESOURCE_MISSING "+episode.id+" "+groupKey+" "+command.name+" "+string.Join("|",a)+" "+command.sourceGap);
+                    if(command.name=="GlobalEffect"||command.name=="Mood"||command.name=="Introduce"||command.name=="Image")continue;
+                }
                 switch(command.name) {
                     case "Goto":
                         if(talk!=null&&!consumedClick) {
@@ -158,6 +162,7 @@ public sealed partial class StoryScene {
                         var values=a[2].Split('&');if(occupied.TryGetValue(a[0],out var makeupActor))makeupActor.SetMakeup(int.Parse(a[1]),values[0]=="True",Number(values.ElementAtOrDefault(1),.3f));break;
                     }
                     case "PivotAnimation":
+                        if(string.IsNullOrEmpty(a[1])){Debug.Log("STORY_EMPTY_PIVOT_NAME "+currentGroup);break;}
                         // CharacterRenderCamera.PlayPivotAnim checks the loaded
                         // character array for null before touching its parent.
                         if(occupied.TryGetValue(string.IsNullOrEmpty(a[0])?"Left":a[0],out var pivotActor))pivotActor.PlayPivot(episode.pivots.First(p=>p.key==a[1]),Number(a[2],1));
@@ -170,9 +175,12 @@ public sealed partial class StoryScene {
                         if(command.audioMode=="missing-source-cue") {voice.Stop();Debug.LogWarning("STORY_SOURCE_VOICE_MISSING "+episode.id+" "+a[1]);break;}
                         if(occupied.TryGetValue(a[0],out var voiceActor))voiceActor.Speaking=true;
                         voice.Stop();voice.clip=StoryContent.Load<AudioClip>(command.audio[0]);
-                        if(!voice.clip)throw new InvalidOperationException("Missing voice "+command.audio[0]);voice.Play();break;
+                        if(!voice.clip)throw new InvalidOperationException("Missing voice "+command.audio[0]);voice.Play();
+                        if(command.audioMode=="declared-bank-repaired")Debug.Log("STORY_REPAIRED_VOICE_PLAY "+episode.id+" "+a[1]+" seconds="+voice.clip.length);
+                        break;
                     case "SE":
                         if(string.IsNullOrEmpty(a[0])||string.IsNullOrEmpty(a[1])){effectsAudio.Stop();break;}
+                        if(command.audioMode=="missing-source-cue"){Debug.LogWarning("STORY_SOURCE_SOUND_MISSING "+episode.id+" "+a[1]);break;}
                         if(command.audio.Length==0)throw new InvalidOperationException("Missing SE "+a[1]);
                         if(command.audioMode=="simultaneous")foreach(var clip in command.audio)effectsAudio.PlayOneShot(StoryContent.Load<AudioClip>(clip));
                         else effectsAudio.PlayOneShot(StoryContent.Load<AudioClip>(command.audio[UnityEngine.Random.Range(0,command.audio.Length)]));break;
@@ -188,6 +196,7 @@ public sealed partial class StoryScene {
                         if(fadeRoutine!=null)StopCoroutine(fadeRoutine);
                         var color=Color.black;if(!string.IsNullOrEmpty(a[0]))ColorUtility.TryParseHtmlString("#"+a[0],out color);fadeRoutine=StartCoroutine(EpisodeFade(color,command.name=="FadeOut"?1:0,Number(a[1])));break;
                     case "FadeOutOverlay":yield return originalUi.PlaySceneFade(true,a[0]);break;
+                    case "FadeInOverlay":yield return originalUi.PlaySceneFade(false,a[0]);break;
                     case "Introduce":originalUi.ShowIntroduce(command.text);break;
                     case "Wait":
                         if(talk!=null && !commands.Any(c=>c.name=="ClickWait") && command==commands.LastOrDefault(c=>c.name=="Wait"))break;

@@ -29,7 +29,7 @@ public sealed partial class OriginalStoryUi {
             root.Find("Pivot/Dialogue/Pivot/Name/Layout/Text_Name").GetComponent<Text>().text=speaker;
             root.Find("Pivot/Dialogue/Pivot/Name/Layout/Text_Part").GetComponent<Text>().text="";
             var image=root.Find("Pivot/Dialogue/Pivot_Portrait/Portrait/Mask/Img_Character").GetComponent<Image>();
-            image.overrideSprite=null;image.sprite=OriginalPortrait(portrait);
+            image.overrideSprite=null;image.sprite=OriginalPortrait(portrait);image.enabled=image.sprite;
             var text=root.Find("Pivot/Dialogue/Pivot/Dialogue/Text_Dialogue_1").GetComponent<TMP_Text>();
             if(fontSize>0)text.fontSize=fontSize;
             root.Find("Pivot/Dialogue/Pivot/Name").GetComponent<Animation>().Play("Dialogue_Name_In");

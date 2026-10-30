@@ -11,9 +11,9 @@ using UnityEngine.UI;
 // Visuals and timings are preserved assets. These bindings replace the game's
 // account service / UILoop with a read-only, table-generated local catalogue.
 public sealed class OriginalStoryMenu : MonoBehaviour {
-    [Serializable] public class Data {public Page[] pages;public Chapter[] chapters;}
+    [Serializable] public class Data {public Page[] pages;public Chapter[] chapters;public Chapter[] factions,archives,events,characters;}
     [Serializable] public class Page {public string name,asset;public Tween[] tweens;}
-    [Serializable] public class Chapter {public string id,number,title,description,image;public int order;public bool prologue;public Episode[] episodes;}
+    [Serializable] public class Chapter {public string id,number,title,description,image,category,portrait,characterId;public int order;public bool prologue;public Episode[] episodes;}
     [Serializable] public class Episode {public string id,title,scene,summary,clearCondition;public int order;public bool playable;}
     [Serializable] public class Tween {public string path;public int kind,ease,loops,loopType;public float duration,delay,value;public bool relative,fromValue;public Vector3 vector;}
     public bool Visible => current!=null && current.activeSelf;
@@ -28,6 +28,11 @@ public sealed class OriginalStoryMenu : MonoBehaviour {
     Text notice;
     TMP_FontAsset koreanTmp;
     bool restoringScroll;
+    string category="main";
+    string builtCategory;
+    RectTransform characterContent;
+    public IEnumerable<Chapter> AllChapters=>Catalogue.chapters.Concat(Catalogue.factions??Array.Empty<Chapter>()).Concat(Catalogue.archives??Array.Empty<Chapter>()).Concat(Catalogue.events??Array.Empty<Chapter>()).Concat(Catalogue.characters??Array.Empty<Chapter>());
+    string CategoryScrollKey=>category=="main"?"story.menu.chapters":"story.menu."+category;
     readonly HashSet<string> batchRead=new HashSet<string>();
     [Serializable] class BatchProgress {public string[] read;}
     string batchProgressPath;
@@ -49,8 +54,10 @@ public sealed class OriginalStoryMenu : MonoBehaviour {
         foreach(var page in Catalogue.pages) {
             Debug.Log("STORY_MENU_PAGE_BEGIN "+page.name+" tweens="+(page.tweens==null?-1:page.tweens.Length));
             var prefab=bundle.LoadAsset<GameObject>(page.asset);
+            if(!prefab)prefab=AssetBundle.GetAllLoadedAssetBundles().Select(b=>b.LoadAsset<GameObject>(page.asset)).FirstOrDefault(p=>p);
             if(!prefab)throw new InvalidOperationException("Missing menu prefab "+page.asset);
             var go=Instantiate(prefab,holder.transform,false);go.name=page.name;
+            if(!go.transform.Find("Hud")&&pages.ContainsKey("Root_Story")){var hud=Instantiate(pages["Root_Story"].transform.Find("Hud").gameObject,go.transform,false);hud.name="Hud";}
             foreach(var button in go.GetComponentsInChildren<Button>(true)) {button.onClick=new Button.ButtonClickedEvent();button.navigation=new Navigation{mode=Navigation.Mode.None};}
             foreach(var text in go.GetComponentsInChildren<Text>(true))if(!text.font||!text.font.name.Contains("Number"))text.font=StoryContent.Load<Font>("Original/MFont_ko");
             foreach(var text in go.GetComponentsInChildren<TMP_Text>(true))text.font=koreanTmp;
@@ -81,15 +88,15 @@ public sealed class OriginalStoryMenu : MonoBehaviour {
         foreach(var name in new[]{"Btn_MainStory","Btn_Proxyan","Btn_Archive","Btn_Eventstory","Btn_FactionStory"}) {
             string path="Center/Story/"+name;
             SetActive(home,path+"/LockInfo",false);SetActive(home,path+"/New",false);
-            if(name=="Btn_MainStory") {Bind(home,path,ShowChapters);home.transform.Find(path+"/Text/Desc/Text_Desc").GetComponent<Text>().text=Catalogue.chapters.Sum(c=>c.episodes.Length)+"개 에피소드\n현재 "+Catalogue.chapters.Sum(c=>c.episodes.Count(e=>e.playable))+"개 재생 가능";}
-            else {Bind(home,path,()=>Notify("이 메뉴는 준비 중입니다. 메인 스토리에서 ‘스타넷 다이브’를 재생할 수 있습니다."));home.transform.Find(path+"/Text/Desc/Text_Desc").GetComponent<Text>().text="준비 중";}
+            string kind=name=="Btn_MainStory"?"main":name=="Btn_FactionStory"?"faction":name=="Btn_Archive"?"archive":name=="Btn_Eventstory"?"event":"character";
+            Bind(home,path,()=>{if(kind=="character")ShowCharacters();else ShowCategory(kind);});
+            home.transform.Find(path+"/Text/Desc/Text_Desc").GetComponent<Text>().text=ChaptersFor(kind).Sum(c=>c.episodes.Length)+"개 에피소드";
         }
         var category=pages["Root_StoryCategory"];
         SetActive(category,"Contents/Anchor_Center/Layout/Bottom",false);
         category.transform.Find("Contents/Anchor_Top/Title/Text_Title").GetComponent<Text>().text="메인 스토리";
         cards=(RectTransform)category.transform.Find(CardPath);cardTemplate=cards.GetChild(0).gameObject;cardTemplate.SetActive(false);
-        foreach(var chapter in Catalogue.chapters)CreateChapter(chapter);
-        ConfigureContent(cards,true,80+Catalogue.chapters.Length*(380+75)+40);
+        RebuildCategories("main");
         var chapterPage=pages["Root_StoryChapter"];
         SetActive(chapterPage,"Bg",true);SetActive(chapterPage,"Bg_Eventstory",false);
         entries=(RectTransform)chapterPage.transform.Find(EntryPath);entryTemplate=entries.GetChild(0).gameObject;entryTemplate.SetActive(false);
@@ -105,28 +112,29 @@ public sealed class OriginalStoryMenu : MonoBehaviour {
         if(Application.isPlaying)StoryMenuRenderCheck.Attach(gameObject,stage);
     }
     static void SetActive(GameObject go,string path,bool active){var tr=go.transform.Find(path);if(tr)tr.gameObject.SetActive(active);}
-    static void Bind(GameObject go,string path,UnityAction action){var b=go.transform.Find(path)?.GetComponent<Button>();if(!b)throw new InvalidOperationException("Menu button missing "+path);b.onClick=new Button.ButtonClickedEvent();b.onClick.AddListener(action);}
+    static void Bind(GameObject go,string path,UnityAction action){var b=(string.IsNullOrEmpty(path)?go.transform:go.transform.Find(path))?.GetComponent<Button>();if(!b)throw new InvalidOperationException("Menu button missing "+path);b.onClick=new Button.ButtonClickedEvent();b.onClick.AddListener(action);}
     static void Values(GameObject go,Dictionary<string,string> values){foreach(var text in go.GetComponentsInChildren<MText>(true))if(text.valueId!=null&&values.TryGetValue(text.valueId,out var v))text.text=v;}
     Sprite ImageFor(Chapter chapter) {
         return ImageForResource(chapter.image);
     }
     Sprite ImageForResource(string resource) {
         if(images.TryGetValue(resource,out var sprite))return sprite;
+        if(resource.StartsWith("portrait:",StringComparison.Ordinal)){sprite=OriginalStoryUi.OriginalPortrait(resource.Substring(9));images.Add(resource,sprite);return sprite;}
         var texture=StoryContent.Load<Texture2D>(resource);
         if(!texture)throw new InvalidOperationException("Missing menu image "+resource);
         sprite=Sprite.Create(texture,new Rect(0,0,texture.width,texture.height),new Vector2(.5f,.5f));images.Add(resource,sprite);return sprite;
     }
-    static void SetImage(Transform parent,string path,Sprite sprite){var image=parent.Find(path).GetComponent<Image>();image.overrideSprite=null;image.sprite=sprite;}
-    void CreateChapter(Chapter chapter) {
+    static void SetImage(Transform parent,string path,Sprite sprite){var image=parent.Find(path).GetComponent<Image>();image.overrideSprite=null;image.sprite=sprite;image.enabled=sprite;}
+    void CreateChapter(Chapter chapter,int index) {
         var row=Instantiate(cardTemplate,cards,false);row.name=chapter.id;
-        var rt=(RectTransform)row.transform;rt.anchoredPosition=new Vector2(80+(Catalogue.chapters.ToList().IndexOf(chapter))*(380+75),0);
+        var rt=(RectTransform)row.transform;rt.anchoredPosition=new Vector2(80+index*(380+75),0);
         Values(row,new Dictionary<string,string>{{"Name",chapter.title},{"ChapterNumber",chapter.number},{"Order",chapter.order.ToString("00")},{"Progress",""}});
         var desc=row.transform.Find("Story/Story/Bottom/Text_Desc_TMP")??row.transform.Find("Story/Story/Bottom/Text_Desc");
         if(!desc)throw new InvalidOperationException("Missing chapter description");
         if(desc.GetComponent<TMP_Text>())desc.GetComponent<TMP_Text>().text=chapter.description;else desc.GetComponent<Text>().text=chapter.description;
-        foreach(var name in new[]{"Archive","Faction","Eventstory"})SetActive(row,"Story/Story/Top/"+name,false);
-        SetActive(row,"Story/Story/Top/Main",true);
-        SetImage(row.transform,"Story/Story/Top/Main/Mask/Img_Chapter",ImageFor(chapter));
+        string top=chapter.category=="faction"?"Faction":chapter.category=="archive"?"Archive":chapter.category=="event"?"Eventstory":"Main";
+        foreach(var name in new[]{"Main","Archive","Faction","Eventstory"})SetActive(row,"Story/Story/Top/"+name,name==top);
+        SetImage(row.transform,"Story/Story/Top/"+top+(top=="Main"?"/Mask/Img_Chapter":"/Mask/Img"),ImageFor(chapter));
         SetActive(row,"Story/Story/Bottom/Prologue",chapter.prologue);
         foreach(var path in new[]{"Story/Story/LockInfo","Story/Story/Complete","Story/Story/New","Story/Story/Bottom/Progress"})SetActive(row,path,false);
         Bind(row,"Story",()=>ShowChapter(chapter));row.SetActive(true);
@@ -156,16 +164,64 @@ public sealed class OriginalStoryMenu : MonoBehaviour {
             Debug.Log("MENU_BG_AUDIT "+path+" active="+g.gameObject.activeInHierarchy+" color="+g.color+" texture="+(g.mainTexture?g.mainTexture.name:"null")+" material="+g.material.name+" effects="+string.Join(",",g.GetComponents<BaseMeshEffect>().Select(e=>e.GetType().Name))+" rect="+g.rectTransform.rect+" scale="+g.transform.lossyScale+" groups="+string.Join(",",g.GetComponentsInParent<CanvasGroup>().Select(c=>c.alpha.ToString())));
         }
     }
-    public void ShowChapters(){Show("Root_StoryCategory","Root_Contents_In_2");RestoreScroll(cards,"story.menu.chapters",true);}
+    Chapter[] ChaptersFor(string kind)=>kind=="faction"?(Catalogue.factions??Array.Empty<Chapter>()):kind=="archive"?(Catalogue.archives??Array.Empty<Chapter>()):kind=="event"?(Catalogue.events??Array.Empty<Chapter>()):kind=="character"?(Catalogue.characters??Array.Empty<Chapter>()):Catalogue.chapters;
+    void RebuildCategories(string kind){
+        category=kind;
+        // Cards are static; returning from an episode need not clone the entire
+        // event/faction list again. Progress is refreshed in the episode page.
+        if(builtCategory==kind)return;
+        foreach(var child in cards.Cast<Transform>().ToArray())if(child.gameObject!=cardTemplate){child.gameObject.SetActive(false);Destroy(child.gameObject);}
+        var list=ChaptersFor(kind);for(int i=0;i<list.Length;i++)CreateChapter(list[i],i);
+        ConfigureContent(cards,true,80+list.Length*455+40);
+        pages["Root_StoryCategory"].transform.Find("Contents/Anchor_Top/Title/Text_Title").GetComponent<Text>().text=kind=="faction"?"팩션 스토리":kind=="archive"?"아카이브":kind=="event"?"이벤트 스토리":"메인 스토리";
+        builtCategory=kind;
+    }
+    public void ShowCategory(string kind){SaveScroll();if(current)current.SetActive(false);RebuildCategories(kind);Show("Root_StoryCategory","Root_Contents_In_2");RestoreScroll(cards,CategoryScrollKey,true);}
+    public void ShowChapters()=>ShowCategory("main");
+    void PrepareCharacters(){
+        var page=pages["Root_Story_Char"];
+        characterContent=(RectTransform)page.transform.Find("Contents/Anchor_Center/CharList/ScrollView/Viewport/Content");
+        var group=characterContent.GetChild(0);group.Find("Title/Text_Title").GetComponent<Text>().text="프록시안 스토리";
+        var grid=group.Find("Grid");var template=grid.GetChild(0).gameObject;template.SetActive(false);
+        foreach(var chapter in ChaptersFor("character")){
+            var row=Instantiate(template,grid,false);row.name=chapter.id;
+            row.transform.Find("Text_Name").GetComponent<Text>().text=chapter.title;SetImage(row.transform,"Slot/Mask/Img_Character",ImageFor(chapter));
+            SetActive(row,"LockInfo",false);SetActive(row,"New",false);Bind(row,"",()=>ShowChapter(chapter));row.SetActive(true);
+        }
+        var fitter=grid.GetComponent<ContentSizeFitter>()??grid.gameObject.AddComponent<ContentSizeFitter>();fitter.verticalFit=ContentSizeFitter.FitMode.PreferredSize;
+    }
+    public void ShowCharacters(){if(!characterContent&&pages.ContainsKey("Root_Story_Char"))PrepareCharacters();if(!characterContent){Notify("프록시안 자료가 아직 설치되지 않았습니다.");return;}Show("Root_Story_Char","Root_Contents_In_1");category="character";Canvas.ForceUpdateCanvases();RestoreScroll(characterContent,"story.menu.characters",false);}
     public void ShowChapter(Chapter chapter) {
         SaveScroll();
         // Hide the old list before replacing its chapter and content.
         if(current==pages["Root_StoryChapter"])current.SetActive(false);
         selected=chapter;
+        category=chapter.category??"main";
         foreach(Transform child in entries)if(child.gameObject!=entryTemplate){child.gameObject.SetActive(false);Destroy(child.gameObject);}
         var page=pages["Root_StoryChapter"];var main=page.transform.Find("Episode/Center/Left/Main").gameObject;
         Values(main,new Dictionary<string,string>{{"Name",chapter.title},{"Desc",chapter.description},{"ChapterNumber","제 "+chapter.number+"장"}});
         SetActive(main,"Story/Bottom/Layout/Prologue",chapter.prologue);SetImage(main.transform,"Story/Story/Mask/Img_Chapter",ImageFor(chapter));
+        foreach(var name in new[]{"Main","Faction","Archive","Eventstory","Character"})SetActive(page,"Episode/Center/Left/"+name,name.Equals(category=="event"?"Eventstory":category,StringComparison.OrdinalIgnoreCase));
+        SetActive(page,"Bg",category!="event");SetActive(page,"Bg_Eventstory",category=="event");
+        if(category=="faction"||category=="archive"||category=="event"){
+            var panel=page.transform.Find("Episode/Center/Left/"+(category=="event"?"Eventstory":category=="archive"?"Archive":"Faction")).gameObject;
+            SetImage(panel.transform,category=="event"?"Frame/Mask_Img/Img":"Group/Mask_Img/Img",ImageFor(chapter));
+            if(category=="event"){SetActive(panel,"Frame/Logo",false);SetActive(panel,"Bottom/Info/Tag",false);}
+            Values(panel,new Dictionary<string,string>{{"Name",chapter.title},{"Desc",chapter.description}});
+            panel.transform.Find("Bottom/Info/Text_Title").GetComponent<Text>().text=chapter.title;
+            panel.transform.Find("Bottom/Info/Text_Desc").GetComponent<Text>().text=chapter.description;
+            SetActive(panel,"Group/Char_Grid",false);SetActive(panel,"Favor_Total",false);
+        }
+        if(category=="character"){
+            var left=page.transform.Find("Episode/Center/Left/Character");SetActive(left.gameObject,"Favor",false);
+            Values(left.gameObject,new Dictionary<string,string>{{"Name",chapter.title},{"Desc",chapter.description}});
+            left.Find("Bottom/Info/Text_Title").GetComponent<Text>().text=chapter.title;
+            left.Find("Bottom/Info/Text_Desc").GetComponent<Text>().text=chapter.description;
+            var pivot=left.Find("Group/Spine/Mask/Pivot");var image=pivot.GetComponent<Image>()??pivot.gameObject.AddComponent<Image>();
+            image.sprite=ImageFor(chapter);image.enabled=image.sprite;image.preserveAspect=true;image.raycastTarget=false;
+            var rect=(RectTransform)pivot;rect.localScale=Vector3.one;rect.localRotation=Quaternion.identity;rect.anchorMin=Vector2.zero;rect.anchorMax=Vector2.one;rect.offsetMin=rect.offsetMax=Vector2.zero;
+            SetActive(left.gameObject,"Group/Block",false);
+        }
         var progress=page.transform.Find("Episode/Center/Right/Info/Progress/Bg/Text_Progress").GetComponent<Text>();
         progress.text=ReadCount(chapter)+"/"+chapter.episodes.Length;
         SetActive(page,"Episode/Center/Right/Info/Empty",chapter.episodes.Length==0);
@@ -203,14 +259,15 @@ public sealed class OriginalStoryMenu : MonoBehaviour {
         if(selected!=null)ShowChapter(selected);else ShowHome();
     }
     public void Hide(){SaveScroll();foreach(var page in pages.Values)page.SetActive(false);if(notice)notice.gameObject.SetActive(false);}
-    public void Back(){if(current==pages["Root_StoryChapter"])ShowChapters();else if(current==pages["Root_Story"]&&ReturnToViewer!=null)ReturnToViewer();else ShowHome();}
+    public void Back(){if(current==pages["Root_StoryChapter"]){if(category=="character")ShowCharacters();else ShowCategory(category);}else if(current==pages["Root_Story"]&&ReturnToViewer!=null)ReturnToViewer();else ShowHome();}
     void Notify(string value){notice.text=value;notice.transform.SetAsLastSibling();notice.gameObject.SetActive(true);CancelInvoke(nameof(HideNotice));Invoke(nameof(HideNotice),4);}
     void HideNotice(){notice.gameObject.SetActive(false);}
     void Update(){if(Visible&&Input.GetKeyDown(KeyCode.Backspace))Back();}
     void SaveScroll() {
         // Automated offscreen checks must not overwrite the user's scroll history.
         if(!Application.isPlaying||Application.isBatchMode||!Visible||restoringScroll)return;
-        if(current==pages["Root_StoryCategory"])PlayerPrefs.SetFloat("story.menu.chapters",cards.parent.parent.GetComponent<ScrollRect>().horizontalNormalizedPosition);
+        if(pages.TryGetValue("Root_Story_Char",out var charPage)&&current==charPage)PlayerPrefs.SetFloat("story.menu.characters",characterContent.parent.parent.GetComponent<ScrollRect>().verticalNormalizedPosition);
+        else if(current==pages["Root_StoryCategory"])PlayerPrefs.SetFloat(CategoryScrollKey,cards.parent.parent.GetComponent<ScrollRect>().horizontalNormalizedPosition);
         else if(current==pages["Root_StoryChapter"]&&selected!=null)PlayerPrefs.SetFloat("story.menu.chapter."+selected.id,entries.parent.parent.GetComponent<ScrollRect>().verticalNormalizedPosition);
         PlayerPrefs.Save();
     }

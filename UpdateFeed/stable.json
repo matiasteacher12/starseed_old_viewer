@@ -1,38 +1,38 @@
 {
   "schema": 1,
   "shellApi": 1,
-  "version": "0.9.0",
+  "version": "0.9.1",
   "shellSha256": "0cd35f0394bd1b3b427b1ca3e42234458a447199aa7ceeec915fb432be94a591",
   "files": [
     {
       "name": "StoryBackend.dll",
-      "sha256": "9135a7a8d43974ebc7ba50e2edbe7ec6deb5470a3f43ca1ee0acc8ea86eaa2c1",
-      "bytes": 343040,
-      "url": "https://github.com/matiasteacher12/starseed_old_viewer/releases/download/code-v0.9.0/StoryBackend.dll"
+      "sha256": "c6ee5f745e3f67f8cc422ac5352af05420584f27c5c7eefaf7b210bf11921bda",
+      "bytes": 361984,
+      "url": "https://github.com/matiasteacher12/starseed_old_viewer/releases/download/code-v0.9.1/StoryBackend.dll"
     },
     {
       "name": "install.json",
-      "sha256": "f5e7d65e1c2ad049aba8ab60f8c6faf47dfc7d333b0a141820ad81060b72a848",
-      "bytes": 72745,
-      "url": "https://github.com/matiasteacher12/starseed_old_viewer/releases/download/code-v0.9.0/install.json"
+      "sha256": "d5a5c7d88c1d0a3551c184a1c8303a47a0c815ed10c1f7e2634a4b133b80ef08",
+      "bytes": 330941,
+      "url": "https://github.com/matiasteacher12/starseed_old_viewer/releases/download/code-v0.9.1/install.json"
     },
     {
       "name": "content.json",
-      "sha256": "f849bc9a9236ef3795058332a94ccfd3d16b3a59516a0cdd2615df49cbbdcace",
-      "bytes": 1110541,
-      "url": "https://github.com/matiasteacher12/starseed_old_viewer/releases/download/code-v0.9.0/content.json"
+      "sha256": "4531b2a7ad25dfc26a762e4a0296167c0d9d49a9a6a67d03b040b9fcdce9224d",
+      "bytes": 3205756,
+      "url": "https://github.com/matiasteacher12/starseed_old_viewer/releases/download/code-v0.9.1/content.json"
     },
     {
       "name": "index.json",
-      "sha256": "55414ea4341d970c8dac5c4f15e40db8304ef9cc7cdc88c160c1aea24d2b736a",
-      "bytes": 237758,
-      "url": "https://github.com/matiasteacher12/starseed_old_viewer/releases/download/code-v0.9.0/index.json"
+      "sha256": "2f4561f0aa7df09db5765ad3b1de84639ea3e399b1f5eaa37b8a5eb622928fc7",
+      "bytes": 1096626,
+      "url": "https://github.com/matiasteacher12/starseed_old_viewer/releases/download/code-v0.9.1/index.json"
     },
     {
       "name": "source-metadata.json",
-      "sha256": "610031fd350a59197e6ee8fb969f7c223c3edf139a6cc8ecceaf9ae4dfac5603",
-      "bytes": 388065,
-      "url": "https://github.com/matiasteacher12/starseed_old_viewer/releases/download/code-v0.9.0/source-metadata.json"
+      "sha256": "0c97f4956bd1f9a610efb8cf3cc971fa4b094835a0b0f8a8ae7004c5fc2c37c7",
+      "bytes": 1927290,
+      "url": "https://github.com/matiasteacher12/starseed_old_viewer/releases/download/code-v0.9.1/source-metadata.json"
     }
   ]
 }

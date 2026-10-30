@@ -37,7 +37,7 @@ public sealed partial class StoryScene {
     }
     void BeginSelectedEpisode(OriginalStoryMenu.Episode selected) {
         if(episodeLoading)return;
-        StartCoroutine(GuardEpisodeLoading(loadingCatalogue.episodes.Single(p=>p.scene==selected.scene)));
+        StartCoroutine(GuardEpisodeLoading(loadingCatalogue.episodes.Single(p=>p.id==selected.id)));
     }
     IEnumerator GuardEpisodeLoading(LoadingEpisode plan) {
         episodeLoading=true;ready=false;loading.text="이야기를 불러오는 중…";loading.transform.SetAsLastSibling();loading.gameObject.SetActive(true);
@@ -82,8 +82,10 @@ public sealed partial class StoryScene {
         yield return StoryContent.PrepareResources(new[]{plan.resource});
         episode=BackendJson.FromJson<StoryEpisode>(StoryContent.Load<TextAsset>(plan.resource).text);
         if(episode.scene!=plan.scene)throw new InvalidOperationException("Episode loading plan mismatch");
+        var repairedAudio=StoryAudioRepairs.Apply(episode);
         yield return LoadStoryBundles(plan.bundles);
-        yield return StoryContent.PrepareResources(plan.resources);
+        yield return StoryContent.PrepareResources(plan.resources.Concat(repairedAudio));
+        foreach(var key in repairedAudio)if(!StoryContent.Load<AudioClip>(key))throw new InvalidOperationException("Missing verified repair audio "+key);
         for(int i=0;i<plan.files.Length;i++) {
             loading.text="이야기를 불러오는 중… "+(i+1)+" / "+plan.files.Length;
             yield return StoryContent.VerifyAsync(plan.files[i]);

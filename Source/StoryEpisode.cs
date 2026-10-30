@@ -15,7 +15,7 @@ using UnityEngine;
     [Serializable] public class SoundCue {public string key;public string[] audio;}
     [Serializable] public class Group {public string key;public Step[] steps;}
     [Serializable] public class Step {public Command[] commands;}
-    [Serializable] public class Command {public string name,text,speaker,resource,video,audioMode;public string[] args,audio;}
+    [Serializable] public class Command {public string name,text,speaker,resource,video,audioMode,sourceGap;public string[] args,audio;}
     [Serializable] public class Actor {public string key,asset;public int[] emotionIndices;public Makeup[] makeup;}
     [Serializable] public class Makeup {public string resource;public Color color;}
     [Serializable] public class Effect {public string key,asset;public Vector3 backgroundPosition;}
