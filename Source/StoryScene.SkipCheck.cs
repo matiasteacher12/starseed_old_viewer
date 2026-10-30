@@ -1,3 +1,4 @@
+#if UNITY_EDITOR || VIEWER_BACKEND
 using System;
 using System.Collections;
 using System.IO;
@@ -16,7 +17,7 @@ public sealed partial class StoryScene {
         if(StorySkipPlan.Next(episode,"Chapter1_1_26",int.MaxValue)?.group!="Chapter1_1_30" ||
            StorySkipPlan.Next(episode,"Chapter1_1_31",int.MaxValue)!=null)
             throw new Exception("Skip boundary selection is incorrect");
-        foreach(var old in loadingCatalogue.episodes.Where(e=>e.scene=="Chapter1_2"||e.scene=="Chapter1_3").Select(p=>JsonUtility.FromJson<StoryEpisode>(StoryContent.Load<TextAsset>(p.resource).text)))
+        foreach(var old in loadingCatalogue.episodes.Where(e=>e.scene=="Chapter1_2"||e.scene=="Chapter1_3").Select(p=>BackendJson.FromJson<StoryEpisode>(StoryContent.Load<TextAsset>(p.resource).text)))
             if(StorySkipPlan.Build(old).Count!=0)throw new Exception("Unexpected boundary in previous stories");
         Debug.Log("STORY_SKIP_BOUNDARIES_OK "+actual);
         // Exercise the first landing as well as the ending. The opening movie
@@ -90,3 +91,5 @@ public sealed partial class StoryScene {
         Debug.Log("STORY_SKIP_TAIL_OK noWrongManaLine=true originalCut1=true laboratoryBackground=true originalCut2=true menuReturn=true");
     }
 }
+
+#endif

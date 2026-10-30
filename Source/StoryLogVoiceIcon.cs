@@ -1,3 +1,4 @@
+#if UNITY_EDITOR || VIEWER_BACKEND
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -17,3 +18,5 @@ public sealed class StoryLogVoiceIcon : MaskableGraphic {
         }
     }
 }
+
+#endif

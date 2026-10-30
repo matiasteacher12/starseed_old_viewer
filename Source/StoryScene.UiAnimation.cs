@@ -1,3 +1,4 @@
+#if UNITY_EDITOR || VIEWER_BACKEND
 using System;
 using System.Collections;
 using UnityEngine;
@@ -24,3 +25,5 @@ public sealed partial class StoryScene {
         Debug.Log("STORY_UI_ANIMATION_END "+clip);
     }
 }
+
+#endif

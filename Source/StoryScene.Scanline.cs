@@ -1,3 +1,4 @@
+#if UNITY_EDITOR || VIEWER_BACKEND
 using UnityEngine;
 
 public sealed partial class StoryScene {
@@ -17,3 +18,5 @@ public sealed partial class StoryScene {
         Debug.Log("STORY_SCANLINE "+slot+" "+enabled);
     }
 }
+
+#endif

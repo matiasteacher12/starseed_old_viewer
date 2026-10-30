@@ -1,3 +1,4 @@
+#if UNITY_EDITOR || VIEWER_BACKEND
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -36,16 +37,17 @@ public sealed class OriginalStoryMenu : MonoBehaviour {
     const string EntryPath="Episode/Center/Right/Info/ScrollView/Viewport/Content";
 
     public void Initialize(Transform stage,AssetBundle bundle,TMP_FontAsset textFont) {
-        Catalogue=JsonUtility.FromJson<Data>(StoryContent.Load<TextAsset>("story-menu").text);
+        Catalogue=BackendJson.FromJson<Data>(StoryContent.Load<TextAsset>("story-menu").text);
         // Automated checks use an isolated store, never the user's completion keys.
         var args=Environment.GetCommandLineArgs();int progressArg=Array.IndexOf(args,"-progress-check-store");
         if(Application.isBatchMode&&progressArg>=0) {
             batchProgressPath=System.IO.Path.GetFullPath(args[progressArg+1]);
-            if(System.IO.File.Exists(batchProgressPath))foreach(var id in JsonUtility.FromJson<BatchProgress>(System.IO.File.ReadAllText(batchProgressPath)).read)batchRead.Add(id);
+            if(System.IO.File.Exists(batchProgressPath))foreach(var id in BackendJson.FromJson<BatchProgress>(System.IO.File.ReadAllText(batchProgressPath)).read)batchRead.Add(id);
         }
         koreanTmp=textFont;
         var holder=new GameObject("Menu preparation");holder.SetActive(false);
         foreach(var page in Catalogue.pages) {
+            Debug.Log("STORY_MENU_PAGE_BEGIN "+page.name+" tweens="+(page.tweens==null?-1:page.tweens.Length));
             var prefab=bundle.LoadAsset<GameObject>(page.asset);
             if(!prefab)throw new InvalidOperationException("Missing menu prefab "+page.asset);
             var go=Instantiate(prefab,holder.transform,false);go.name=page.name;
@@ -63,12 +65,13 @@ public sealed class OriginalStoryMenu : MonoBehaviour {
             var rt=(RectTransform)go.transform;rt.anchorMin=Vector2.zero;rt.anchorMax=Vector2.one;rt.offsetMin=rt.offsetMax=Vector2.zero;rt.localScale=Vector3.one;
             SetActive(go,"Hud/Hud/Money",false);SetActive(go,"Hud/Hud/Favor",false);SetActive(go,"Hud/Hud/AlarmTooltipRoot",false);SetActive(go,"Hud/Hud/Left/Btn_Guide",false);
             Bind(go,"Hud/Hud/Left/Btn_Back",Back);Bind(go,"Hud/Hud/Left/Btn_Lobby",()=>{if(ReturnToViewer!=null)ReturnToViewer();else ShowHome();});
-            foreach(var tween in page.tweens) {
+            foreach(var tween in page.tweens??new Tween[0]) {
                 var target=go.transform.Find(tween.path);
                 if(!target)throw new InvalidOperationException("Missing tween target "+tween.path);
                 target.gameObject.AddComponent<OriginalMenuTween>().Configure(tween);
             }
             pages.Add(page.name,go);
+            Debug.Log("STORY_MENU_PAGE_READY "+page.name);
         }
         Destroy(holder);
         var home=pages["Root_Story"];
@@ -192,7 +195,7 @@ public sealed class OriginalStoryMenu : MonoBehaviour {
         if(completed&&playing!=null) {
             if(Application.isBatchMode) {
                 batchRead.Add(playing.id);
-                if(batchProgressPath!=null){System.IO.Directory.CreateDirectory(System.IO.Path.GetDirectoryName(batchProgressPath));System.IO.File.WriteAllText(batchProgressPath,JsonUtility.ToJson(new BatchProgress{read=batchRead.ToArray()}));}
+                if(batchProgressPath!=null){System.IO.Directory.CreateDirectory(System.IO.Path.GetDirectoryName(batchProgressPath));System.IO.File.WriteAllText(batchProgressPath,BackendJson.ToJson(new BatchProgress{read=batchRead.ToArray()}));}
             } else {PlayerPrefs.SetInt("story.read."+playing.id,1);PlayerPrefs.Save();}
             Debug.Log("STORY_PROGRESS_SAVED "+playing.id);
         }
@@ -245,3 +248,5 @@ public sealed class OriginalMenuTween : MonoBehaviour {
     }
     static float Ease(float t,int ease){if(ease==1)return t;if(ease==6)return 1-(1-t)*(1-t);if(ease==28){const float c=1.70158f*1.525f;return t<.5f?Mathf.Pow(2*t,2)*((c+1)*2*t-c)/2:(Mathf.Pow(2*t-2,2)*((c+1)*(2*t-2)+c)+2)/2;}throw new InvalidOperationException("Unsupported original menu ease "+ease);}
 }
+
+#endif

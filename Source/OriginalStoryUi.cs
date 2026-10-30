@@ -1,3 +1,4 @@
+#if UNITY_EDITOR || VIEWER_BACKEND
 using System;
 using System.Collections;
 using System.Linq;
@@ -364,3 +365,5 @@ public sealed partial class OriginalStoryUi : MonoBehaviour
         Debug.Log("STORY_POPUP_CLOSE " + popup.name);
     }
 }
+
+#endif

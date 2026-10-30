@@ -1,3 +1,4 @@
+#if UNITY_EDITOR || VIEWER_BACKEND
 using System;
 using System.Collections;
 using System.IO;
@@ -98,7 +99,7 @@ public sealed partial class StoryScene {
         Debug.Log("STORY_VIDEO_BEGIN path="+path+" loop="+loop+" duration="+storyVideo.length+" audioTracks="+storyVideo.audioTrackCount);
         if(!blocking)yield break;
         var captionPath=Path.ChangeExtension(path,".subtitles.json");
-        var captions=StoryContent.HasFile(captionPath)?JsonUtility.FromJson<MovieCaptions>(File.ReadAllText(StoryContent.FilePath(captionPath))).captions:new MovieCaption[0];
+        var captions=StoryContent.HasFile(captionPath)?BackendJson.FromJson<MovieCaptions>(File.ReadAllText(StoryContent.FilePath(captionPath))).captions:new MovieCaption[0];
         while(!movieFinished && movieError==null) {
             bool allowSkip=storyVideo.time>=skipDelay;
             movieSkipRoot.SetActive(allowSkip);originalUi.SetMovieMode(true,allowSkip);
@@ -141,3 +142,5 @@ public sealed partial class StoryScene {
         AuditEffectIfRequested(effect,key);
     }
 }
+
+#endif

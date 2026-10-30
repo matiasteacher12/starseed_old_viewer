@@ -1,3 +1,4 @@
+#if UNITY_EDITOR || VIEWER_BACKEND
 using System;
 using System.Globalization;
 using System.Linq;
@@ -100,3 +101,5 @@ public sealed class StoryPlayerNameDialog : MonoBehaviour
         Label(rect,text,Vector2.zero,size,18);return rect;
     }
 }
+
+#endif

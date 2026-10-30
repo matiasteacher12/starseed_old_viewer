@@ -1,3 +1,4 @@
+#if UNITY_EDITOR || VIEWER_BACKEND
 using System.Collections.Generic;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -52,3 +53,5 @@ public static class StoryTextDisplay {
         return result.ToString();
     }
 }
+
+#endif

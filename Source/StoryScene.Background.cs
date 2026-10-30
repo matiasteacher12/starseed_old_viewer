@@ -1,3 +1,4 @@
+#if UNITY_EDITOR || VIEWER_BACKEND
 using System;
 using System.Collections;
 using System.Linq;
@@ -28,9 +29,9 @@ public sealed partial class StoryScene {
         }
         foreach(var animation in storyBackground.GetComponentsInChildren<Animation>(true))if(animation.clip)animation.Play();
         var manifest=StoryContent.Load<TextAsset>("story-background-particles").text;
-        var row=JsonUtility.FromJson<OldBackgroundMap>(manifest).backgrounds.Single(r=>r.asset==asset);
+        var row=BackendJson.FromJson<OldBackgroundMap>(manifest).backgrounds.Single(r=>r.asset==asset);
         if(!string.IsNullOrEmpty(row.root)) {
-            var shaders=JsonUtility.FromJson<EffectShaderMap>(manifest);
+            var shaders=BackendJson.FromJson<EffectShaderMap>(manifest);
             foreach(var renderer in storyBackground.GetComponentsInChildren<ParticleSystemRenderer>(true))
                 foreach(var material in renderer.materials) {
                     var shader=shaders.shaders.Single(s=>s.source==material.shader.name);
@@ -69,3 +70,5 @@ public sealed partial class StoryScene {
         actorImage.rectTransform.anchoredPosition=actorStart;backgroundImage.rectTransform.anchoredPosition=bgStart;Destroy(animationHost);storyShake=null;
     }
 }
+
+#endif

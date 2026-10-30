@@ -1,3 +1,4 @@
+#if UNITY_EDITOR || VIEWER_BACKEND
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -73,7 +74,7 @@ public sealed class StoryEpisodeActor : MonoBehaviour {
 
     public float PlayMotion(string name) {
         bool missing=!Animator.HasState(0,Animator.StringToHash(name));
-        if(missingMotions==null)missingMotions=JsonUtility.FromJson<MissingMotionList>(StoryContent.Load<TextAsset>("story-missing-motions").text);
+        if(missingMotions==null)missingMotions=BackendJson.FromJson<MissingMotionList>(StoryContent.Load<TextAsset>("story-missing-motions").text);
         if(missing&&!missingMotions.entries.Any(e=>e.actor==Definition.key&&e.motion==name))throw new InvalidOperationException("Missing original motion: "+Definition.key+" / "+name);
         var parameters=Animator.parameters;
         string previous=Motion;
@@ -188,3 +189,5 @@ public sealed class StoryEpisodeActor : MonoBehaviour {
         if(mouth>=0){float strength=0;if(Speaking&&Voice&&Voice.isPlaying){if(Voice.clip.loadState==AudioDataLoadState.Loaded)Voice.clip.GetData(samples,Mathf.Min(Voice.timeSamples,Voice.clip.samples-1));else Array.Clear(samples,0,samples.Length);strength=Mathf.Clamp(samples.Sum(x=>Mathf.Abs(x))/samples.Length*900,0,75);}face.SetBlendShapeWeight(mouth,strength);}
     }
 }
+
+#endif

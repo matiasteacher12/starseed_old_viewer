@@ -1,3 +1,4 @@
+#if UNITY_EDITOR || VIEWER_BACKEND
 using System;
 using System.Collections;
 using System.Linq;
@@ -26,3 +27,5 @@ public sealed partial class StoryScene {
         Debug.Log("ASSET_STORE_MEDIA_OK videos="+count+" strict=true");Application.Quit(0);
     }
 }
+
+#endif

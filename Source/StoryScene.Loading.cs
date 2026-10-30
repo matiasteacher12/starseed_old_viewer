@@ -1,3 +1,4 @@
+#if UNITY_EDITOR || VIEWER_BACKEND
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -79,7 +80,7 @@ public sealed partial class StoryScene {
         // have gone, so repeatedly selecting episodes does not accumulate them.
         yield return Resources.UnloadUnusedAssets();
         yield return StoryContent.PrepareResources(new[]{plan.resource});
-        episode=JsonUtility.FromJson<StoryEpisode>(StoryContent.Load<TextAsset>(plan.resource).text);
+        episode=BackendJson.FromJson<StoryEpisode>(StoryContent.Load<TextAsset>(plan.resource).text);
         if(episode.scene!=plan.scene)throw new InvalidOperationException("Episode loading plan mismatch");
         yield return LoadStoryBundles(plan.bundles);
         yield return StoryContent.PrepareResources(plan.resources);
@@ -106,3 +107,5 @@ public sealed partial class StoryScene {
     }
     IEnumerator WaitForEpisodeLoad() {while(episodeLoading)yield return null;}
 }
+
+#endif

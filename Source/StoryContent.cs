@@ -47,7 +47,7 @@ public static class StoryContent {
         byte[] manifestBytes=File.ReadAllBytes(manifestPath);
         var manifest=JsonUtility.FromJson<Manifest>(System.Text.Encoding.UTF8.GetString(manifestBytes));
         if(manifest==null||manifest.schemaVersion!=1||manifest.contentApi!=ContentApi)throw new InvalidDataException("Incompatible asset pack. Update the app and asset pack together.");
-        if(!Version.TryParse(manifest.minAppVersion,out var minimum)||!Version.TryParse(Application.version,out var current)||current<minimum)throw new InvalidDataException("This asset pack requires app "+manifest.minAppVersion);
+        if(!Version.TryParse(manifest.minAppVersion,out var minimum)||!Version.TryParse(ViewerShell.BackendVersion,out var current)||current<minimum)throw new InvalidDataException("This asset pack requires app "+manifest.minAppVersion);
         if(manifest.files==null||manifest.resources==null)throw new InvalidDataException("Incomplete asset manifest");
         if(!string.IsNullOrEmpty(manifest.assetStore)) {
             store=new StoryAssetStore(root,manifest.assetStore,manifest.storeId);

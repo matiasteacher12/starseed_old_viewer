@@ -1,3 +1,4 @@
+#if UNITY_EDITOR || VIEWER_BACKEND
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -38,8 +39,8 @@ public sealed class InstarseedView : MonoBehaviour {
         story.ReturnToViewer=ShowHome;story.Shown+=Hide;
         ShowHome();
     }
-    void EnsureData(){if(data!=null)return;data=JsonUtility.FromJson<Catalogue>(File.ReadAllText(StoryContent.FilePath("Instarseed/catalog.json")));if(data.schema!=1)throw new InvalidDataException("Unsupported Instarseed catalog");
-        var e=JsonUtility.FromJson<EmojiData>(File.ReadAllText(StoryContent.FilePath("Instarseed/emoji.json")));var sheet=new Texture2D(2,2,TextureFormat.RGBA32,false);if(!sheet.LoadImage(File.ReadAllBytes(StoryContent.FilePath("Instarseed/emoji.png"))))throw new InvalidDataException("Emoji sheet");
+    void EnsureData(){if(data!=null)return;data=BackendJson.FromJson<Catalogue>(File.ReadAllText(StoryContent.FilePath("Instarseed/catalog.json")));if(data.schema!=1)throw new InvalidDataException("Unsupported Instarseed catalog");
+        var e=BackendJson.FromJson<EmojiData>(File.ReadAllText(StoryContent.FilePath("Instarseed/emoji.json")));var sheet=new Texture2D(2,2,TextureFormat.RGBA32,false);if(!sheet.LoadImage(File.ReadAllBytes(StoryContent.FilePath("Instarseed/emoji.png"))))throw new InvalidDataException("Emoji sheet");
         emoji=ScriptableObject.CreateInstance<TMP_SpriteAsset>();emoji.name="Emoji_Text";JsonUtility.FromJsonOverwrite("{\"m_Version\":\"1.1.0\"}",emoji);emoji.spriteSheet=sheet;emoji.material=new Material(Shader.Find("TextMeshPro/Sprite"));emoji.material.mainTexture=sheet;
         foreach(var g in e.glyphs)emoji.spriteGlyphTable.Add(new TMP_SpriteGlyph(g.index,new GlyphMetrics(g.metrics[0],g.metrics[1],g.metrics[2],g.metrics[3],g.metrics[4]),new GlyphRect(g.x,g.y,g.width,g.height),g.scale,0));
         foreach(var c in e.characters)emoji.spriteCharacterTable.Add(new TMP_SpriteCharacter(c.unicode,emoji,emoji.spriteGlyphTable.First(g=>g.index==c.glyph)){name=c.name,scale=c.scale});emoji.UpdateLookupTables();
@@ -53,15 +54,7 @@ public sealed class InstarseedView : MonoBehaviour {
         story.Hide();root.gameObject.SetActive(true);root.SetAsLastSibling();screen=name;
     }
     public void Hide(){if(mediaRoutine!=null){StopCoroutine(mediaRoutine);mediaRoutine=null;}video.Stop();root.gameObject.SetActive(false);if(native)native.Hide();if(nativeVideo){Destroy(nativeVideo);nativeVideo=null;}}
-    public void ShowHome(){Clear("home");
-        Label(root,"STARSEED",64,48,900,42,22,accent);Label(root,"기록 보관소",64,112,1000,72,46,ink);
-        Label(root,"구 한국판의 이야기를 다시 만나보세요.",67,195,1000,38,21,muted);
-        var a=Button(root,"스토리",64,294,556,278,()=>story.ShowHome(),panel,36);a.GetComponentInChildren<TMP_Text>().alignment=TextAlignmentOptions.TopLeft;a.GetComponentInChildren<TMP_Text>().margin=new Vector4(32,35,24,20);
-        Label(a.transform,"STORY ARCHIVE",32,100,460,28,15,accent);Label(a.transform,"메인 1–6장 · 인터루드\n94개 에피소드",32,151,460,75,23,muted);
-        var b=Button(root,"인스타시드",644,294,572,278,()=>{profile=0;page=0;ShowFeed();},new Color(.10f,.23f,.27f),36);b.GetComponentInChildren<TMP_Text>().alignment=TextAlignmentOptions.TopLeft;b.GetComponentInChildren<TMP_Text>().margin=new Vector4(32,35,24,20);
-        Label(b.transform,"INSTARSEED",32,100,470,28,15,accent);Label(b.transform,"프록시안들의 일상\n게시물 · 영상 · 댓글",32,151,470,75,23,muted);
-        Label(root,"LOCAL ARCHIVE  /  "+Application.version,66,650,720,30,14,muted);Label(root,"M  음소거 전환    - / +  음량",884,650,330,30,15,muted);Debug.Log("VIEWER_HOME_SHOWN");
-    }
+    public void ShowHome(){Clear("home");ViewerHomeMenu.Draw(root,font,()=>story.ShowHome(),()=>{profile=0;page=0;ShowFeed();});}
     void Header(string title,Action back){Button(root,"뒤로",32,22,126,44,back,panel,19);Label(root,title,184,23,840,42,28,ink);Button(root,"홈",1152,22,96,44,ShowHome,panel,19);Box(root,"Divider",32,82,1216,1,new Color(.18f,.27f,.33f));}
     void EnsureNative(){EnsureData();if(native)return;native=gameObject.AddComponent<OriginalInstarseedUi>();native.Initialize(stage,font,emoji,data,ShowHome);native.PlayVideo=ShowPost;}
     public void ShowFeed(){EnsureNative();Clear("feed");root.gameObject.SetActive(false);native.ShowFeed();}
@@ -143,3 +136,5 @@ public sealed class InstarseedView : MonoBehaviour {
     }
 }
 
+
+#endif

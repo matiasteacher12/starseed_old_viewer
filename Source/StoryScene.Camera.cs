@@ -1,3 +1,4 @@
+#if UNITY_EDITOR || VIEWER_BACKEND
 using System;
 using System.Linq;
 using UnityEngine;
@@ -29,7 +30,7 @@ public sealed partial class StoryScene {
     static readonly AnimationCurve CameraEaseIn=new AnimationCurve(new Keyframe(0,0,1,1.4f),new Keyframe(1,1,0,1));
 
     void ResetEpisodeCamera() {
-        if(cameraBlendTable==null)cameraBlendTable=JsonUtility.FromJson<CameraBlendTable>(StoryContent.Load<TextAsset>("story-camera-blends").text);
+        if(cameraBlendTable==null)cameraBlendTable=BackendJson.FromJson<CameraBlendTable>(StoryContent.Load<TextAsset>("story-camera-blends").text);
         activeZoom=null;closeUpSlot=null;shotSlot="Center";requestedCamera="Talk_Center";activeCamera=requestedCamera;
         cameraCurrent=cameraTo=cameraFrom=episode.cameras.First(s=>s.key==requestedCamera);
         cameraBlendElapsed=cameraBlendDuration=0;ApplyEpisodeShot();
@@ -107,3 +108,5 @@ public sealed partial class StoryScene {
         projection.m02=2*cameraCurrent.lensShift.x;projection.m12=2*cameraCurrent.lensShift.y;actorCamera.projectionMatrix=projection;
     }
 }
+
+#endif

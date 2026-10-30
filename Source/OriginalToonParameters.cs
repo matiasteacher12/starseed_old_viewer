@@ -1,3 +1,4 @@
+#if UNITY_EDITOR || VIEWER_BACKEND
 using UnityEngine;
 
 // Shader globals from the original PP_nilo_talk profile and renderer settings.
@@ -43,3 +44,5 @@ public static class OriginalToonParameters
         Shader.SetGlobalVector("_GlobalUserOverridedMainLightDirVS",directionVS);
     }
 }
+
+#endif

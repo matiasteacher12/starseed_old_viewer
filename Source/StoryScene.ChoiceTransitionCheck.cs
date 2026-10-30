@@ -1,3 +1,4 @@
+#if UNITY_EDITOR || VIEWER_BACKEND
 using System;
 using System.Collections;
 using System.IO;
@@ -41,3 +42,5 @@ public sealed partial class StoryScene {
         Debug.Log("STORY_CHOICE_TRANSITION_VERIFIED consecutiveChoices=true fullSelectionEffect=true videoWithoutChoices=true nextDialogue=true");
     }
 }
+
+#endif

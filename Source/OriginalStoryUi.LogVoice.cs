@@ -1,3 +1,4 @@
+#if UNITY_EDITOR || VIEWER_BACKEND
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -42,3 +43,5 @@ public sealed partial class OriginalStoryUi {
     }
     void OnDisable(){StopLogVoice();}
 }
+
+#endif

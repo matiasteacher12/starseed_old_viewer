@@ -1,3 +1,4 @@
+#if UNITY_EDITOR || VIEWER_BACKEND
 using System;
 using UnityEngine;
 
@@ -38,3 +39,5 @@ public sealed partial class StoryScene {
         Debug.Log("AUDIO_PREFERENCES_OK "+mode+" volume="+volume);
     }
 }
+
+#endif

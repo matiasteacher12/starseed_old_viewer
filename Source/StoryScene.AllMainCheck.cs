@@ -1,3 +1,4 @@
+#if UNITY_EDITOR || VIEWER_BACKEND
 using System;
 using System.Collections;
 using System.IO;
@@ -10,7 +11,7 @@ public sealed partial class StoryScene {
     IEnumerator CheckAllMain() {
         if(!Application.isBatchMode)yield break;
         var args=Environment.GetCommandLineArgs();int i=Array.IndexOf(args,"-all-main-check");
-        var suite=JsonUtility.FromJson<MainSuite>(File.ReadAllText(args[i+1]));
+        var suite=BackendJson.FromJson<MainSuite>(File.ReadAllText(args[i+1]));
         if(loadingCatalogue.episodes.Length!=94||storyMenu.Catalogue.chapters.SelectMany(c=>c.episodes).Count(e=>e.playable)!=94)throw new Exception("Main catalogue is incomplete");
         foreach(var entry in suite.entries) {
             var selected=storyMenu.Catalogue.chapters.SelectMany(c=>c.episodes).Single(e=>e.scene==entry.plan.scene);
@@ -26,3 +27,5 @@ public sealed partial class StoryScene {
         Application.Quit(0);
     }
 }
+
+#endif

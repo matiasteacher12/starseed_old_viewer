@@ -1,3 +1,4 @@
+#if UNITY_EDITOR || VIEWER_BACKEND
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.Rendering.Universal;
@@ -42,3 +43,5 @@ public sealed class StoryAnimatedBackground : MonoBehaviour {
     void OnDisable(){if(Camera)Camera.enabled=false;if(fallback)fallback.gameObject.SetActive(false);if(StoryBloomFeature.AnimatedBackground==Target)StoryBloomFeature.AnimatedBackground=null;}
     void OnDestroy(){ReleaseTarget();if(fallback)Destroy(fallback.gameObject);}
 }
+
+#endif

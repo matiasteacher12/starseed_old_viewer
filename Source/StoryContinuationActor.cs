@@ -1,3 +1,4 @@
+#if UNITY_EDITOR || VIEWER_BACKEND
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -36,7 +37,7 @@ public sealed class StoryContinuationActor : MonoBehaviour
         }
         weight=config.expressionWeight;brightness=config.brightness;
         if(config.asset.Contains("mana")) {
-            var curve=JsonUtility.FromJson<CurveData>(StoryContent.Load<TextAsset>("dialogue-character-struggle").text);
+            var curve=BackendJson.FromJson<CurveData>(StoryContent.Load<TextAsset>("dialogue-character-struggle").text);
             struggle=new AnimationCurve(curve.keys.Select(k=>new Keyframe(k.time,k.value,k.inTangent,k.outTangent)).ToArray());
         }
         var animator=GetComponentInChildren<Animator>();
@@ -56,3 +57,5 @@ public sealed class StoryContinuationActor : MonoBehaviour
         if(face && expressionIndex>=0)face.SetBlendShapeWeight(expressionIndex,weight);
     }
 }
+
+#endif

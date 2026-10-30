@@ -1,3 +1,4 @@
+#if UNITY_EDITOR || VIEWER_BACKEND
 using System;
 using System.Collections;
 using System.Linq;
@@ -17,7 +18,7 @@ public sealed partial class OriginalStoryUi {
     // extracted keys (including tangents), above all story UI, not actor-only.
     public IEnumerator PlaySceneFade(bool fadeOut,string hex) {
         if(!sceneFade) {
-            sceneFadeData=JsonUtility.FromJson<FadeData>(StoryContent.Load<TextAsset>("story-scene-fade").text);
+            sceneFadeData=BackendJson.FromJson<FadeData>(StoryContent.Load<TextAsset>("story-scene-fade").text);
             var node=new GameObject("Original Normal screen fade",typeof(RectTransform),typeof(CanvasGroup),typeof(Image));
             node.transform.SetParent(Root.transform,false);
             var rect=(RectTransform)node.transform;
@@ -46,3 +47,5 @@ public sealed partial class OriginalStoryUi {
         SceneFadingOut=false;
     }
 }
+
+#endif

@@ -1,3 +1,4 @@
+#if UNITY_EDITOR || VIEWER_BACKEND
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -8,7 +9,7 @@ public sealed partial class StoryScene {
     [Serializable] internal class OldCheckPlan {public string scene;public string[] textIds;public int[] choices;}
     internal static OldCheckPlan LoadOldCheckPlan() {
         var args=Environment.GetCommandLineArgs();int i=Array.IndexOf(args,"-old-check-plan");
-        return i>=0?JsonUtility.FromJson<OldCheckPlan>(File.ReadAllText(args[i+1])):null;
+        return i>=0?BackendJson.FromJson<OldCheckPlan>(File.ReadAllText(args[i+1])):null;
     }
     internal IEnumerator CheckOldEpisode(bool returnToMenu=false,OldCheckPlan suppliedPlan=null,bool quit=true) {
         if(!Application.isBatchMode)yield break;
@@ -126,3 +127,5 @@ public sealed partial class StoryScene {
         Debug.Log("OLD_CONTROLS_CHECK_OK movieSkip=2 storySkip=true replay=true mute=true");
     }
 }
+
+#endif

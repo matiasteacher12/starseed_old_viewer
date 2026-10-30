@@ -1,3 +1,4 @@
+#if UNITY_EDITOR || VIEWER_BACKEND
 using System;
 using System.Collections;
 using System.IO;
@@ -16,7 +17,7 @@ public sealed partial class StoryScene {
         if(episodeRoutine!=null)StopCoroutine(episodeRoutine);
         StopEpisodeMovies();originalUi.HideAllDialogue();foreach(var a in episodeActors.Values)a.gameObject.SetActive(false);
         var folder=Path.GetFullPath(Path.Combine(Application.dataPath,"../../RenderChecks/Backgrounds"));Directory.CreateDirectory(folder);
-        var map=JsonUtility.FromJson<OldBackgroundMap>(StoryContent.Load<TextAsset>("story-background-particles").text);
+        var map=BackendJson.FromJson<OldBackgroundMap>(StoryContent.Load<TextAsset>("story-background-particles").text);
         foreach(var row in map.backgrounds) {
             ClearStoryBackground();ShowStoryBackground(row.asset);yield return new WaitForSecondsRealtime(1.5f);
             RenderTalkCamera();
@@ -37,3 +38,5 @@ public sealed partial class StoryScene {
         Debug.Log("OLD_BACKGROUNDS_CHECK_OK count="+map.backgrounds.Length+" cleanup=true");Application.Quit(0);
     }
 }
+
+#endif

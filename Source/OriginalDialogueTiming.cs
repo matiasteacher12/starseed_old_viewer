@@ -1,3 +1,4 @@
+#if UNITY_EDITOR || VIEWER_BACKEND
 // Reproduces TalkScriptEngine.TalkAction's one-character-per-update clock.
 // The script supplies the fast interval; normal playback uses twice that value.
 public sealed class OriginalDialogueTiming
@@ -38,3 +39,5 @@ public sealed class OriginalDialogueTiming
         remainingWait = endWait;
     }
 }
+
+#endif

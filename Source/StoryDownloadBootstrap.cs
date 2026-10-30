@@ -19,6 +19,12 @@ public sealed class StoryDownloadBootstrap:MonoBehaviour {
         if(preview.IsFaulted)throw preview.Exception.GetBaseException();
         if(preview.Result!=null){Screen.BeginMovie(preview.Result);Debug.Log("STARTUP_LOCAL_MOVIE_VERIFIED beforeDownload=true");}
         else Debug.Log("STARTUP_LOCAL_MOVIE_FALLBACK installedOrDownloadedContent=true");
+        if(ViewerShell.Instance){
+            yield return ViewerShell.Instance.CheckUpdates(Screen);
+            installer.Dispose();
+            try{installer=StoryAssetInstaller.Create();}
+            catch(Exception){if(!ViewerShell.Instance.Updates.Rollback())throw;Debug.LogWarning("CODE_PLAN_ROLLBACK invalid candidate catalog");installer=StoryAssetInstaller.Create();}
+        }
         var args=Environment.GetCommandLineArgs();bool captured=false,mediaChecked=false;
         while(true){
             Task install=installer.Install();
@@ -39,6 +45,9 @@ public sealed class StoryDownloadBootstrap:MonoBehaviour {
                 yield return null;
             }
             if(!install.IsFaulted&&!install.IsCanceled)break;
+            if(ViewerShell.Instance?.Updates!=null&&ViewerShell.Instance.Updates.Rollback()){
+                Debug.LogWarning("CODE_ASSET_ROLLBACK previous backend selected");installer.Dispose();installer=StoryAssetInstaller.Create();continue;
+            }
             Debug.LogWarning("ASSET_DOWNLOAD_FAILED "+(install.Exception?.GetBaseException().Message??"Cancelled"));Screen.DownloadError();
             if(Application.isBatchMode){Application.Quit(1);yield break;}
             while(!Input.GetKeyDown(KeyCode.Return)&&!Input.GetKeyDown(KeyCode.KeypadEnter)){

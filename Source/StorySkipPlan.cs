@@ -1,3 +1,4 @@
+#if UNITY_EDITOR || VIEWER_BACKEND
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -41,3 +42,5 @@ public static class StorySkipPlan {
             Order(episode,command.args[command.name=="Goto"?0:1],seen,order);
     }
 }
+
+#endif

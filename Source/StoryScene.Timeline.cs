@@ -1,3 +1,4 @@
+#if UNITY_EDITOR || VIEWER_BACKEND
 using System;
 using System.Collections;
 using System.Linq;
@@ -85,3 +86,5 @@ public sealed partial class StoryScene {
         actorImage.gameObject.SetActive(true);
     }
 }
+
+#endif

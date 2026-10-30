@@ -1,3 +1,4 @@
+#if UNITY_EDITOR || VIEWER_BACKEND
 using System;
 using System.Linq;
 using TMPro;
@@ -63,3 +64,5 @@ public sealed partial class OriginalStoryUi {
         animation.Play(name);Debug.Log("STORY_TEXT_EFFECT "+name+" duration="+state.length);return state.length;
     }
 }
+
+#endif

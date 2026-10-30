@@ -1,3 +1,4 @@
+#if UNITY_EDITOR || VIEWER_BACKEND
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -69,17 +70,20 @@ public sealed partial class StoryScene : MonoBehaviour
     float volume = .03f;
     bool muted;
 
+    #if UNITY_EDITOR
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
     static void Boot() { if (!FindObjectOfType<StoryScene>()) new GameObject("Airen story").AddComponent<StoryScene>(); }
+
+    #endif
 
     IEnumerator Start()
     {
         Application.targetFrameRate = 60;
         StoryAudioPreferences.Load(out muted,out volume);AudioListener.volume=muted?0:volume;
-        gameObject.AddComponent<AudioListener>();
+        if(!GetComponent<AudioListener>())gameObject.AddComponent<AudioListener>();
         CheckAudioPreferences();
-        var downloader=gameObject.AddComponent<StoryDownloadBootstrap>();Exception downloadFailure=null;
-        yield return CatchLoadingFailure(downloader.Run(),e=>downloadFailure=e);
+        var downloader=ViewerShell.Instance?ViewerShell.Instance.Downloader:gameObject.AddComponent<StoryDownloadBootstrap>();Exception downloadFailure=null;
+        if(!ViewerShell.Instance)yield return CatchLoadingFailure(downloader.Run(),e=>downloadFailure=e);
         if(downloadFailure!=null){Debug.LogError("ASSET_DOWNLOAD_SETUP_ERROR "+downloadFailure.Message);if(Application.isBatchMode)Application.Quit(1);else gameObject.AddComponent<StoryContentError>().Message=downloadFailure.Message;yield break;}
         if(downloader.Configured&&!downloader.Installed)yield break;
         if(Application.isBatchMode&&Environment.GetCommandLineArgs().Contains("-download-only-check"))yield break;
@@ -103,12 +107,12 @@ public sealed partial class StoryScene : MonoBehaviour
         if(startupFailure==null)yield return CatchLoadingFailure(StoryContent.InitializeCommon(p=>{if(startup)startup.SetProgress(.05f+.3f*p,"common");}),e=>startupFailure=e);
         if(startupFailure!=null){if(startup)startup.Close();Debug.LogError("STORY_CONTENT_ERROR "+startupFailure.Message);if(Application.isBatchMode)Application.Quit(1);else gameObject.AddComponent<StoryContentError>().Message=startupFailure.Message;yield break;}
         if(startup){startup.SetProgress(.38f,"layout");startup.Capture("startup-038");yield return null;}
-        config = JsonUtility.FromJson<Config>(StoryContent.Load<TextAsset>("scene-config").text);
+        config = BackendJson.FromJson<Config>(StoryContent.Load<TextAsset>("scene-config").text);
         font = StoryContent.Load<Font>("Original/MFont_ko");
         keyFont = StoryContent.Load<Font>("Original/Number_Slim_EB");
         CreateStage();
         loading = Label(stage, "지역을 불러오는 중…", 22, new Rect(0,320,1280,80), TextAnchor.MiddleCenter);
-        loadingCatalogue=JsonUtility.FromJson<LoadingCatalogue>(StoryContent.Load<TextAsset>("story-loading").text);
+        loadingCatalogue=BackendJson.FromJson<LoadingCatalogue>(StoryContent.Load<TextAsset>("story-loading").text);
         Exception menuFailure=null;
         yield return CatchLoadingFailure(LoadStoryBundles(loadingCatalogue.menuBundles,p=>{if(startup)startup.SetProgress(.4f+.4f*p,"menu-bundles");}),e=>menuFailure=e);
         if(menuFailure!=null) {
@@ -158,6 +162,7 @@ public sealed partial class StoryScene : MonoBehaviour
             }
         } else {yield return GuardEpisodeLoading(loadingCatalogue.episodes.First(p=>LoadOldCheckPlan()==null||p.scene==LoadOldCheckPlan().scene));}
         Debug.Log("STORY_READY menuSeconds="+startupWatch.Elapsed.TotalSeconds.ToString("F3",System.Globalization.CultureInfo.InvariantCulture)+" actors="+episodeActors.Count+" bundles="+loadedBundles.Count+" hashedBytes="+StoryContent.HashedBytes+" hashes="+StoryContent.Hashes+" cacheHits="+StoryContent.CacheHits);
+        ViewerShell.Healthy();
         downloader.Ready();
         if(Environment.GetCommandLineArgs().Contains("-startup-only-check")){Application.Quit(0);yield break;}
         if(Environment.GetCommandLineArgs().Contains("-instarseed-check"))StartCoroutine(viewerHome.Check());
@@ -454,3 +459,5 @@ public sealed class ChoicePattern : MaskableGraphic
     }
     void Add(VertexHelper vh,Rect r,float x,float y,Vector2 uv){float t=x/r.width;float a=t<.4f?1-t/.4f:t>.6f?(t-.6f)/.4f:0;vh.AddVert(new Vector3(r.xMin+x,r.yMin+y),new Color(52/255f,53/255f,55/255f,a*.3921569f),uv);}
 }
+
+#endif

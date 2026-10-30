@@ -1,3 +1,4 @@
+#if UNITY_EDITOR || VIEWER_BACKEND
 using System.Collections.Generic;
 using Coffee.UIExtensions;
 using UnityEngine;
@@ -48,3 +49,5 @@ public sealed class OriginalScreenTouch : MonoBehaviour
         return effect;
     }
 }
+
+#endif

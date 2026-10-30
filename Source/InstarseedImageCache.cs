@@ -1,3 +1,4 @@
+#if UNITY_EDITOR || VIEWER_BACKEND
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -40,3 +41,5 @@ public sealed class InstarseedImageCache {
         if(Bytes>Math.Max(Budget,pinned))throw new Exception("Picture cache exceeds budget");
     }
 }
+
+#endif

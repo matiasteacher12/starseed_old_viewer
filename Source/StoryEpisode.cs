@@ -1,3 +1,4 @@
+#if UNITY_EDITOR || VIEWER_BACKEND
 using System;
 using UnityEngine;
 
@@ -24,3 +25,5 @@ using UnityEngine;
     [Serializable] public class Curve {public string path,property;public Key[] keys;}
     [Serializable] public class Key {public float time,value,inTangent,outTangent;}
 }
+
+#endif

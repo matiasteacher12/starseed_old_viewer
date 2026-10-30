@@ -1,3 +1,4 @@
+#if UNITY_EDITOR || VIEWER_BACKEND
 using System;
 using System.Collections;
 using System.Linq;
@@ -25,3 +26,5 @@ public sealed partial class StoryScene {
         Debug.Log("RECOVERED_VOICE_LOG_OK replay=true closeStopped=true");
     }
 }
+
+#endif

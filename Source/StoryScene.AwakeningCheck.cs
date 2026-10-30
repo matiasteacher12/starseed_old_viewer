@@ -1,3 +1,4 @@
+#if UNITY_EDITOR || VIEWER_BACKEND
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -50,3 +51,5 @@ public sealed partial class StoryScene {
         Debug.Log("STORY_AWAKENING_OK lines="+episodeLines+" choices="+choicesSeen+" logRows="+originalUi.EpisodeLogCount+" timelines="+timelineFrames.Count+" videos="+videosSeen.Count);
     }
 }
+
+#endif

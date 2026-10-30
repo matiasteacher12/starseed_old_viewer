@@ -1,3 +1,4 @@
+#if UNITY_EDITOR || VIEWER_BACKEND
 using System.Collections;
 using System.Collections.Generic;
 using TMPro;
@@ -136,3 +137,5 @@ public sealed partial class OriginalStoryUi
         parent.GetComponent<Animation>().Stop();parent.gameObject.SetActive(false);
     }
 }
+
+#endif

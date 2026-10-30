@@ -1,3 +1,4 @@
+#if UNITY_EDITOR || VIEWER_BACKEND
 using System;
 using System.Collections;
 using UnityEngine;
@@ -29,3 +30,5 @@ public sealed class StoryIndicatorDiagnostics : MonoBehaviour
         Destroy(gameObject);
     }
 }
+
+#endif

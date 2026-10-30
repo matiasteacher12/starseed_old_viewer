@@ -1,3 +1,4 @@
+#if UNITY_EDITOR || VIEWER_BACKEND
 using System;
 using System.Collections;
 using UnityEngine;
@@ -31,3 +32,5 @@ public sealed partial class OriginalStoryUi {
         var node=Find("Center/CenterImage");node.GetComponent<Animation>().Stop();node.gameObject.SetActive(false);
     }
 }
+
+#endif

@@ -1,3 +1,4 @@
+#if UNITY_EDITOR || VIEWER_BACKEND
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -361,3 +362,5 @@ public sealed partial class StoryScene {
         }
     }
 }
+
+#endif

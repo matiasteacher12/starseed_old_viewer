@@ -1,3 +1,4 @@
+#if UNITY_EDITOR || VIEWER_BACKEND
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -30,7 +31,7 @@ public sealed class OriginalInstarseedUi : MonoBehaviour {
     const string HomeCell="Root_Instarseed_Home_feedPrefab", ProfileCell="Root_Instarseed_Profile_profileCellViewPrefab", AlbumCell="Root_Instarseed_Profile_postCellViewPrefab";
     public void Initialize(RectTransform parent,TMP_FontAsset f,TMP_SpriteAsset e,InstarseedView.Catalogue d,Action returnHome){
         stage=parent;font=f;emoji=e;data=d;home=returnHome;
-        config=JsonUtility.FromJson<Config>(File.ReadAllText(StoryContent.FilePath("Instarseed/ui.json")));
+        config=BackendJson.FromJson<Config>(File.ReadAllText(StoryContent.FilePath("Instarseed/ui.json")));
         foreach(var path in config.extraBundles)if(!AssetBundle.LoadFromFile(StoryContent.FilePath(path)))throw new InvalidDataException(path);
         bundle=AssetBundle.GetAllLoadedAssetBundles().First(b=>b.GetAllAssetNames().Any(n=>string.Equals(n,config.pages[0].asset,StringComparison.OrdinalIgnoreCase)));
         holder=new GameObject("Original Instarseed preparation");holder.SetActive(false);
@@ -217,3 +218,5 @@ public sealed class InstarseedRowAssets:MonoBehaviour {
     public void Release(){foreach(var release in releases)release();releases.Clear();foreach(var a in assets)if(a)Destroy(a);assets.Clear();}
     void OnDestroy(){Release();}
 }
+
+#endif

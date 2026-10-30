@@ -15,11 +15,12 @@ public sealed class StoryAssetInstaller : IDisposable {
     [Serializable] public class Plan {public int schema;public string version,catalogSha256,bootstrapSha256;public Part[] parts;public StoryContent.FileEntry startupMovie;}
     [Serializable] public class Part {public string name,url,sha256;public long bytes;public string[] objects;}
     readonly Plan plan;readonly StoryContent.Manifest catalog;readonly string bootstrap,root,store,downloads;
+    readonly string mediaBootstrap;
     readonly string catalogText;readonly Dictionary<string,string> metadataText=new Dictionary<string,string>();
     readonly StoryContentVerification verification;readonly Dictionary<string,StoryContent.FileEntry> objects;
     readonly CancellationTokenSource cancel=new CancellationTokenSource();
     public string ContentRoot=>root;
-    public string BootstrapBundle=>Path.Combine(bootstrap,"startup.bundle");
+    public string BootstrapBundle=>Path.Combine(mediaBootstrap,"startup.bundle");
     public string BootstrapHash=>plan.bootstrapSha256;
     public volatile string Phase="데이터 확인 중…";
     public long Done,Total;public int Requests;
@@ -30,12 +31,13 @@ public sealed class StoryAssetInstaller : IDisposable {
     public void ReleaseMediaProbe()=>mediaProbeGate.Set();
     public static StoryAssetInstaller Create(){
         string app=Path.GetFullPath(Path.Combine(Application.dataPath,".."));
-        string config=Path.Combine(app,"Bootstrap","install.json"),destination=Path.Combine(app,"Content");
+        string config=Path.Combine(ViewerShell.BackendDirectory??Path.Combine(app,"Bootstrap"),"install.json"),destination=Path.Combine(app,"Content");
         var args=Environment.GetCommandLineArgs();int p=Array.IndexOf(args,"-download-plan"),d=Array.IndexOf(args,"-download-directory");
         if(Application.isBatchMode&&p>=0){config=Path.GetFullPath(args[p+1]);if(d<0)throw new Exception("Isolated download directory required");destination=Path.GetFullPath(args[d+1]);}
         return File.Exists(config)?new StoryAssetInstaller(config,destination):null;
     }
     StoryAssetInstaller(string config,string destination){
+        mediaBootstrap=ViewerShell.Instance?Path.Combine(Path.GetFullPath(Path.Combine(Application.dataPath,"..")),"Bootstrap"):Path.GetDirectoryName(config);
         bootstrap=Path.GetDirectoryName(config);root=Path.Combine(destination,"Assets");store=Path.Combine(destination,"asset-store");downloads=Path.Combine(destination,".downloads");
         plan=JsonUtility.FromJson<Plan>(File.ReadAllText(config));
         string manifestPath=Path.Combine(bootstrap,"content.json");
@@ -64,7 +66,7 @@ public sealed class StoryAssetInstaller : IDisposable {
     string ObjectPath(string h)=>Path.Combine(store,"referenced",h.Substring(0,2),h);
     public Task<string> VerifyStartupMovie()=>Task.Run(()=>{
         var entry=plan.startupMovie;if(entry==null)return null;
-        string path=Path.Combine(bootstrap,entry.path);
+        string path=Path.Combine(mediaBootstrap,entry.path);
         try{
             var before=new FileInfo(path);if(!before.Exists||before.Length!=entry.bytes)return null;
             long write=before.LastWriteTimeUtc.Ticks;string digest=StoryContent.Hash(path);var after=new FileInfo(path);

@@ -1,3 +1,4 @@
+#if UNITY_EDITOR || VIEWER_BACKEND
 using System.Collections;
 using System.IO;
 using System.Linq;
@@ -63,3 +64,5 @@ public sealed class StoryMenuRenderCheck : MonoBehaviour {
         RenderTexture.active=null;Destroy(texture);
     }
 }
+
+#endif

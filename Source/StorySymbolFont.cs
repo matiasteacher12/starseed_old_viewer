@@ -1,3 +1,4 @@
+#if UNITY_EDITOR || VIEWER_BACKEND
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -33,3 +34,5 @@ public static class StorySymbolFont {
         return font;
     }
 }
+
+#endif

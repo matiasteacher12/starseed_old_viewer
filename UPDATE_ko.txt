@@ -1,0 +1,62 @@
+스타시드 구판 뷰어 0.9.0 — 고정 진입부 / 기능 코드 자동 업데이트
+
+사용 방법
+  0.8.0 이하 사용자는 앱을 닫고 git pull 또는 새 ZIP으로 한 번 갱신한다.
+  그 뒤에는 로그인 화면에서 업데이트를 자동 확인한다. 새 기능 코드를 받은 뒤
+  크기/SHA-256/고정 셸 API와 DLL 해시를 검사하고 같은 실행에서 처음 로드한다.
+  성공한 업데이트 때문에 앱을 종료하거나 재실행하지 않는다.
+  데이터 확인을 마치면 TAP TO START로 이어진다. 영상/BGM과 음소거 설정을 유지한다.
+  본편 데이터 릴리스와 애셋 카탈로그는 기존 0.7.7/리소스 릴리스 0.7.6을 그대로 쓴다.
+
+구조
+  고정: Unity 런타임, Assembly-CSharp.dll(셸 API 1), 로그인/진행률/상위 메인 메뉴,
+        콘텐츠 설치·검증, 공통 애셋 호환 컴포넌트, 렌더 파이프라인.
+  교체 가능: StoryBackend.dll의 스토리·인스타시드·메뉴 연결 및 재생 코드,
+        해당 코드와 함께 검증된 install/content/index/source-metadata JSON 스냅샷.
+  기존 번들 안의 MonoScript 호환성을 유지하기 위해 호환 컴포넌트의
+  Assembly-CSharp 어셈블리 이름은 보존한다. 사용자 설정/진행도 키도 유지한다.
+  메인 메뉴의 레이아웃은 ViewerHomeMenu에 고정하고 기능 쪽은 이동 콜백을 전달한다.
+  플레이어가 자동 실행하는 것은 ViewerShell뿐이다. StoryScene은 선택된 DLL에서 만든다.
+  Unity Editor에서는 기존 소스를 사용할 수 있고, 플레이어 빌드에서 기능 소스는
+  제외한다. 별도 컴파일 시 VIEWER_BACKEND로 활성화한다.
+  동적 DLL의 중첩 JSON 자료형은 .NET JSON reader와 명시적 공개 필드 매핑으로 읽는다.
+  Unity 오브젝트 자체의 FromJsonOverwrite는 기존 Unity API를 유지한다.
+
+저장과 복구
+  Backend/: 앱에 동봉한 검증된 기본 버전. 런타임에 덮어쓰지 않는다.
+  CodeUpdates/releases/<매니페스트 SHA-256>/: 다운로드한 코드와 데이터 계획.
+  CodeUpdates/state.json: active/previous/pending/rejected. 작은 파일만 원자적으로 전환.
+  Content/: 기존 본편 애셋과 다운로드 이어받기 저장소. 코드 폴더와 독립.
+  원격 확인은 지정된 뷰어 저장소의 UpdateFeed/stable.json만 사용한다.
+  코드 파일은 해당 뷰어 저장소의 고정 code-v* Release URL만 허용한다.
+  네트워크/손상/호환성 오류에는 기존 정상 버전을 쓴다. 읽을 수 없는 후보
+  카탈로그나 본편 설치 실패에도 이전 코드/카탈로그 계획으로 복귀한다.
+  새 기능이 메뉴까지 정상 초기화되면 active로 확정한다. 초기화 도중 비정상 종료하면
+  다음 실행에서 pending을 거부하고 이전 정상 버전 또는 동봉 버전으로 복귀한다.
+  TAP TO START에서 사용자가 정상 종료한 경우에는 실패 버전으로 기록하지 않는다.
+  한 프로세스에서 기존 기능을 실행한 다음 교체하지 않는다. 업데이트 확인을 먼저
+  마친 뒤 기능 DLL을 한 번 로드하므로 정상 업데이트에는 재실행이 필요 없다.
+  원격 SHA-256은 배포한 바이트의 무결성 검사다. 별도 코드 서명 체계는 아니며
+  지정된 GitHub 저장소와 HTTPS를 신뢰하는 배포 모델이다.
+
+개발/다음 기능 업데이트
+  로그인/상위 메뉴/공통 호환성 계층은 고정한다. 기능 DLL만 새 버전으로 컴파일한다.
+  예: python tools/build_backend090.py Native/Modular090c/App 0.9.1
+  새 파일은 Releases/code-v0.9.1에 생성된다. 기존 버전 산출물을 덮어쓰지 않는다.
+  shell-sources.json과 고정 소스가 다르면 컴파일 도구가 중단한다.
+  고정 계층/Unity 엔진/API를 변경해야 하면 새 기본 앱을 배포해야 한다.
+  추가 런타임 DLL 의존성은 현재 모듈 계약에 포함하지 않는다.
+  실제 새 DLL + 카탈로그로 격리 로딩/재생/사용자 상태 검사를 통과한 다음,
+  지정된 뷰어 Release에 파일을 올리고 원격 크기/해시를 검증한다.
+  UpdateFeed/stable.json은 모든 파일 검증 뒤 마지막에 게시한다.
+  애셋을 추가할 때는 기존 manage-asset-store 절차와 데이터 Release 검증을 유지한다.
+  새 데이터 계획의 원본 시작 UI 해시는 고정 셸에 포함된 시작 UI와 일치해야 한다.
+  코드 업데이트는 기존 DLL이나 애셋을 삭제하지 않으며, 이전 정상 버전을 보존한다.
+
+이번 검증 기록
+  Data/Validation/Update090c/results.json 및 user-validation.json
+  Data/Validation/Update090c/primary/ : 실제 배포 경로 로딩 검사
+  Data/github090_validation.json, Data/github090_publish.json : 완료 후 검증·게시 기록
+  첫 후보의 예외/JSON 초기화 오류 기록은 Update090 및 Update090b에 보존한다.
+  시험용 0.9.1/0.9.2는 로컬 업데이트 검사 전용이며 GitHub에 게시하지 않는다.
+  기존 원본 연출의 미해결 사항은 이번 업데이트 작업에서 수정하지 않았다.

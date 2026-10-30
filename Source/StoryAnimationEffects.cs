@@ -1,3 +1,4 @@
+#if UNITY_EDITOR || VIEWER_BACKEND
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -27,7 +28,7 @@ public sealed class StoryAnimationEffects : MonoBehaviour {
     public IEnumerable<GameObject> ActiveEffects=>effects.Where(e=>e);
 
     public void PlaySelfEffect(string text) {
-        var data=JsonUtility.FromJson<EventData>(text);
+        var data=BackendJson.FromJson<EventData>(text);
         foreach(var item in data.Params) {
             var entry=Data.effects.FirstOrDefault(e=>e.key==item.Path);
             if(entry==null){if(warned.Add(item.Path))Debug.LogWarning("STORY_ANIM_EFFECT_UNREVIEWED "+item.Path);continue;}
@@ -66,3 +67,5 @@ public sealed class StoryAnimationEffects : MonoBehaviour {
         }
     }
 }
+
+#endif

@@ -1,3 +1,4 @@
+#if UNITY_EDITOR || VIEWER_BACKEND
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -12,7 +13,7 @@ public sealed partial class StoryScene {
         effectAuditDirectory=Path.Combine(folder,"Effects");Directory.CreateDirectory(effectAuditDirectory);
         foreach(var scene in nextFive?new[]{"Chapter1_7","Chapter1_8","Chapter1_9","Chapter1_10","Chapter1_11"}:new[]{"Chapter1_4","Chapter1_5","Chapter1_6"}) {
             var row=storyMenu.Catalogue.chapters.SelectMany(c=>c.episodes).First(e=>e.scene==scene);
-            var source=JsonUtility.FromJson<StoryEpisode>(StoryContent.Load<TextAsset>(loadingCatalogue.episodes.Single(e=>e.scene==scene).resource).text);
+            var source=BackendJson.FromJson<StoryEpisode>(StoryContent.Load<TextAsset>(loadingCatalogue.episodes.Single(e=>e.scene==scene).resource).text);
             var selectionBlocks=source.groups.SelectMany(g=>g.steps).Where(s=>s.commands.Any(c=>c.name=="Select")).ToArray();
             // These three episodes have at most two choices, and all alternatives
             // within each block converge. First+last paths cover every edge.
@@ -114,3 +115,5 @@ public sealed partial class StoryScene {
         Debug.Log("STORY_MEETING_SKIP_OK "+anchors);
     }
 }
+
+#endif

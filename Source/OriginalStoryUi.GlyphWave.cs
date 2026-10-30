@@ -1,3 +1,4 @@
+#if UNITY_EDITOR || VIEWER_BACKEND
 using System;
 using TMPro;
 using UnityEngine;
@@ -35,3 +36,5 @@ public sealed class StoryGlyphWave : MonoBehaviour {
         text.UpdateVertexData(TMP_VertexDataUpdateFlags.Vertices);
     }
 }
+
+#endif
