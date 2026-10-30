@@ -1,8 +1,8 @@
 {
-  "version": "0.9.2",
+  "version": "0.9.3",
   "shellVersion": "0.9.0",
   "shellSha256": "0cd35f0394bd1b3b427b1ca3e42234458a447199aa7ceeec915fb432be94a591",
-  "backendSha256": "8da77ba1aed27c59fda0da8abb352da6f19eaca7174c2c9debc9ada2e99fd08b",
+  "backendSha256": "fa2f8315992acfcbe5722d82169f6ecdf3ce3a34e11bedc0ce95723e59fdb001",
   "catalogSha256": "58f86617df203fe2d06e8a3ba2050ee6c7ad4bb3783ad22e092c1c4efd5ee562",
   "totalStories": 1061,
   "dateStories": 296,
@@ -45,5 +45,14 @@
     "offline",
     "bad-feed-fallback"
   ],
-  "limits": "All 296 dates: opening/rendering/message return/read state; selected full routes: exact dialogue sequence, every command type, Android additions and exceptional media/motions. Not every branch fully replayed."
+  "limits": "All 296 dates: opening/rendering/message return/read state; selected full routes: exact dialogue sequence, every command type, Android additions and exceptional media/motions. Not every branch fully replayed.",
+  "patchValidation": "765 menu-to-plan mappings; first episode one full route and exact dialogue order, both opening movies/skip/replay/mute, Instarseed regression, same-process upgrade/offline/bad-code fallback. Data catalog unchanged; not a repeat of every story route.",
+  "patchChecks": [
+    "Data/Validation/UI093/fa2f8315992a/first.log",
+    "Data/Validation/UI093/fa2f8315992a/home.log",
+    "Data/Validation/UI093/fa2f8315992a/first-full.log",
+    "Data/Validation/UI093/fa2f8315992a/upgrade.log",
+    "Data/Validation/UI093/fa2f8315992a/offline.log",
+    "Data/Validation/UI093/fa2f8315992a/bad-code-fallback.log"
+  ]
 }

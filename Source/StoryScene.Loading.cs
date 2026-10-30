@@ -37,17 +37,33 @@ public sealed partial class StoryScene {
     }
     void BeginSelectedEpisode(OriginalStoryMenu.Episode selected) {
         if(episodeLoading)return;
-        StartCoroutine(GuardEpisodeLoading(loadingCatalogue.episodes.Single(p=>p.id==selected.id)));
+        StartCoroutine(GuardEpisodeLoading(selected.id,PrepareSelectedEpisode(selected)));
     }
-    IEnumerator GuardEpisodeLoading(LoadingEpisode plan) {
+    LoadingEpisode ResolveEpisodeLoadingPlan(OriginalStoryMenu.Episode selected) {
+        // The preserved menu/save key is Chapter01_01A; the already shipped
+        // opening script/plan is Chapter01_01. Keep both identities intact.
+        string id=selected.id=="Chapter01_01A"&&selected.scene=="Chapter1_1"?"Chapter01_01":selected.id;
+        var matches=loadingCatalogue.episodes.Where(p=>p.id==id&&p.scene==selected.scene).ToArray();
+        if(matches.Length!=1)throw new InvalidOperationException("Episode loading plan mismatch: "+selected.id+" / "+selected.scene);
+        return matches[0];
+    }
+    IEnumerator PrepareSelectedEpisode(OriginalStoryMenu.Episode selected) {
+        // Resolve inside the guarded iterator, after it starts. A missing menu
+        // mapping must return to the menu instead of throwing from the click.
+        var plan=ResolveEpisodeLoadingPlan(selected);
+        Debug.Log("STORY_EPISODE_SELECTED menu="+selected.id+" plan="+plan.id+" scene="+plan.scene);
+        yield return PrepareSelectedEpisode(plan);
+    }
+    IEnumerator GuardEpisodeLoading(LoadingEpisode plan) {yield return GuardEpisodeLoading(plan.id,PrepareSelectedEpisode(plan));}
+    IEnumerator GuardEpisodeLoading(string id,IEnumerator preparation) {
         episodeLoading=true;ready=false;loading.text="이야기를 불러오는 중…";loading.transform.SetAsLastSibling();loading.gameObject.SetActive(true);
         // Flatten nested coroutines so verification/load failures are recoverable
         // in the normal menu, and fail automated checks explicitly.
         Exception failure=null;
-        yield return CatchLoadingFailure(PrepareSelectedEpisode(plan),e=>failure=e);
+        yield return CatchLoadingFailure(preparation,e=>failure=e);
         episodeLoading=false;
         if(failure!=null) {
-            Debug.LogError("STORY_EPISODE_LOAD_FAILED "+plan.id+" "+failure.Message);
+            Debug.LogError("STORY_EPISODE_LOAD_FAILED "+id+" "+failure.Message);
             ClearEpisodeActors();
             if(Application.isBatchMode){Application.Quit(1);yield break;}
             ready=true;storyMenu.ReturnFromEpisode(false);

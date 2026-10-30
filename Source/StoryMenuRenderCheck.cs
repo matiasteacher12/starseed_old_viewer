@@ -23,6 +23,7 @@ public sealed class StoryMenuRenderCheck : MonoBehaviour {
         yield return null;
         Save(camera,target,Path.Combine(directory,"runtime-home.png"));
         var menu=FindObjectOfType<OriginalStoryMenu>();
+        yield return FindObjectOfType<StoryScene>().CheckMenuLoadingPlans();
         if(menu.Catalogue.chapters.Length!=7 || menu.Catalogue.chapters.Sum(c=>c.episodes.Length)!=94)throw new System.Exception("Old menu catalogue mismatch");
         if(System.Environment.GetCommandLineArgs().Contains("-expansion-menu-check")){
             int[] expected={52,14,207,398};string[] kinds={"faction","archive","event","character"};

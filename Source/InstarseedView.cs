@@ -55,7 +55,17 @@ public sealed class InstarseedView : MonoBehaviour {
         story.Hide();root.gameObject.SetActive(true);root.SetAsLastSibling();screen=name;
     }
     public void Hide(){if(mediaRoutine!=null){StopCoroutine(mediaRoutine);mediaRoutine=null;}video.Stop();root.gameObject.SetActive(false);if(native)native.Hide();if(nativeVideo){Destroy(nativeVideo);nativeVideo=null;}}
-    public void ShowHome(){Clear("home");ViewerHomeMenu.Draw(root,font,()=>story.ShowHome(),()=>{profile=0;page=0;ShowFeed();});}
+    public void ShowHome(){
+        Clear("home");ViewerHomeMenu.Draw(root,font,()=>story.ShowHome(),()=>{profile=0;page=0;ShowFeed();});
+        // Content descriptions belong to the backend; the shell layout stays
+        // fixed. Only active labels belong to this draw (Destroy is deferred).
+        foreach(var label in root.GetComponentsInChildren<TMP_Text>()) {
+            if(label.text=="메인 1–6장 · 인터루드\n94개 에피소드")
+                label.text="메인 · 팩션 · 아카이브 · 이벤트\n프록시안 스토리 · 총 "+story.AllChapters.Sum(c=>c.episodes.Length)+"항목";
+            else if(label.text=="프록시안들의 일상\n게시물 · 영상 · 댓글")
+                label.text="게시물 · 영상 · 댓글\n메시지 · 데이트 이야기";
+        }
+    }
     void Header(string title,Action back){Button(root,"뒤로",32,22,126,44,back,panel,19);Label(root,title,184,23,840,42,28,ink);Button(root,"홈",1152,22,96,44,ShowHome,panel,19);Box(root,"Divider",32,82,1216,1,new Color(.18f,.27f,.33f));}
     void EnsureNative(){EnsureData();if(native)return;native=gameObject.AddComponent<OriginalInstarseedUi>();native.Initialize(stage,font,emoji,data,ShowHome);native.PlayVideo=ShowPost;native.OpenDate=(ep,returned)=>{Hide();story.OpenExternalEpisode(ep,()=>{root.gameObject.SetActive(false);screen="feed";returned();VideoMode?.Invoke(false);});};native.DateIsRead=story.IsRead;}
     public OriginalInstarseedUi MessageUi {get{EnsureNative();root.gameObject.SetActive(false);screen="feed";return native;}}

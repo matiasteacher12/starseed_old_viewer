@@ -5,6 +5,17 @@ using System.Linq;
 using UnityEngine;
 
 public sealed partial class StoryScene {
+    internal IEnumerator CheckMenuLoadingPlans() {
+        if(!Application.isBatchMode)yield break;
+        var rows=storyMenu.AllChapters.SelectMany(c=>c.episodes).Where(e=>e.playable).ToArray();
+        foreach(var row in rows)ResolveEpisodeLoadingPlan(row);
+        foreach(var row in new[]{new OriginalStoryMenu.Episode{id="missing",scene="Chapter1_1"},new OriginalStoryMenu.Episode{id="Chapter01_01A",scene="Chapter1_2"}}) {
+            Exception failure=null;
+            yield return CatchLoadingFailure(PrepareSelectedEpisode(row),e=>failure=e);
+            if(failure==null||episode!=null||episodeActors.Count!=0)throw new Exception("Invalid menu selection escaped the loading guard");
+        }
+        Debug.Log("STORY_MENU_LOADING_PLANS_OK count="+rows.Length+" rejectedUnknown=true rejectedWrongScene=true");
+    }
     IEnumerator CheckDemandLoading() {
         if(!Application.isBatchMode)yield break;
         if(episode!=null||episodeActors.Count!=0||!storyMenu.Visible||loadedBundles.Count!=loadingCatalogue.menuBundles.Length)

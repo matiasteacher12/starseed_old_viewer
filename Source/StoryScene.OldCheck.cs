@@ -24,7 +24,8 @@ public sealed partial class StoryScene {
         var canvas=stage.GetComponentInParent<Canvas>();canvas.renderMode=RenderMode.ScreenSpaceCamera;canvas.worldCamera=capture;canvas.planeDistance=1;
         Time.timeScale=quit?3:8;
         if(Environment.GetCommandLineArgs().Contains("-old-controls-check")) {
-            yield return CheckOldControls();Application.Quit(0);yield break;
+            Time.timeScale=1;
+            yield return CheckOldControls(capture,target,folder);Application.Quit(0);yield break;
         }
         if(Environment.GetCommandLineArgs().Contains("-old-ui-only")) {
             if(episodeRoutine!=null)StopCoroutine(episodeRoutine);
@@ -95,12 +96,14 @@ public sealed partial class StoryScene {
         Time.timeScale=1;target.Release();Destroy(target);Destroy(capture.gameObject);
         if(quit)Application.Quit(0);
     }
-    IEnumerator CheckOldControls() {
+    IEnumerator CheckOldControls(Camera capture,RenderTexture target,string folder) {
         string previousMovie="";
         for(int i=0;i<2;i++) {
             float deadline=Time.realtimeSinceStartup+45;
-            while((!movieBlocking||!storyVideo||!storyVideo.isPrepared||storyVideo.url==previousMovie||storyVideo.time<.5) && Time.realtimeSinceStartup<deadline)yield return null;
-            if(!movieBlocking||storyVideo.url==previousMovie)throw new Exception("Movie skip control did not become ready");
+            while((!movieBlocking||!storyVideo||!storyVideo.isPrepared||storyVideo.url==previousMovie||storyVideo.time<1.5) && Time.realtimeSinceStartup<deadline)yield return null;
+            if(!movieBlocking||!storyVideo||!storyVideo.isPrepared||storyVideo.url==previousMovie||storyVideo.time<1.5||storyVideo.frame<1)throw new Exception("Movie skip control did not become ready");
+            Canvas.ForceUpdateCanvases();capture.Render();SaveStoryTarget(target,Path.Combine(folder,"opening-video-"+i+".png"));
+            Debug.Log("OLD_VIDEO_DECODED index="+i+" frame="+storyVideo.frame+" elapsed="+storyVideo.time+" naturalSpeed=true");
             previousMovie=storyVideo.url;
             // Keep the check silent while exercising the real master routing.
             movieAudio.mute=true;HandleAudioHotkey(KeyCode.M);
