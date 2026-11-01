@@ -27,6 +27,10 @@ Windows 64비트 독립 뷰어입니다. 메인 94화, 팩션 52항목, 아카�
 Python, Unity Editor, Git LFS, 원본 게임이나 HIVE 로그인은 필요하지 않습니다.
 배치 파일도 필요 없습니다. 쓰기 가능한 NTFS 폴더에 보관하세요.
 
+한글 경로 실행 오류 수정본은 **[실행 파일 0.9.4](https://github.com/matiasteacher12/starseed_old_viewer/releases/download/launcher-v0.9.4/StarseedOldStory.exe)** 입니다. 기존 사용자는 앱을 닫고 이 파일만 기존 `StarseedOldStory.exe` 위에 교체하면 됩니다. `Content/`, `CodeUpdates/`, 나머지 DLL과 폴더는 그대로 두세요. 애셋을 다시 받을 필요가 없습니다. 새 clone/ZIP에는 수정 exe가 포함됩니다.
+
+실행 파일은 0.9.4, 메뉴에 표시되는 기능 코드는 0.9.3입니다. 이번 수정은 기능 코드가 로드되기 전의 시작 경로 처리라서 자동 코드 업데이트만으로는 적용되지 않습니다.
+
 데이터는 [별도 저장소의 Releases](https://github.com/matiasteacher12/starseed_old_data/releases)에서 받아 `Content/`에 저장합니다.
 이미 설치된 정상 파일은 재사용하며 준비가 끝나면 인터넷 없이 볼 수 있습니다.
 중단된 다운로드는 이어받습니다. 실패 화면에서는 연결/디스크 공간을 확인하고 Enter로 재시도하거나 Esc로 종료할 수 있습니다.

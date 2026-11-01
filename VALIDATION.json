@@ -54,5 +54,8 @@
     "Data/Validation/UI093/fa2f8315992a/upgrade.log",
     "Data/Validation/UI093/fa2f8315992a/offline.log",
     "Data/Validation/UI093/fa2f8315992a/bad-code-fallback.log"
-  ]
+  ],
+  "launcherVersion": "0.9.4",
+  "launcherSha256": "1601547df71125fa2bb15bf2d52690a043d6adeb1e115a2ff96e40daddfb6458",
+  "unicodePathValidation": "Direct exe from Korean/space/special-character working directories, opening story video/skip/dialogue, Instarseed, same-process code upgrade/offline/bad-code fallback. All asset requests zero. No change to fixed shell, backend, content or stored user keys."
 }
